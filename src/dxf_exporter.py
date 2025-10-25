@@ -1085,8 +1085,9 @@ class DXFExporter:
                 continue
 
             # For geometry-based positioning, check if source layer exists
+            # Skip this check for absolute and external_dxf positioning (they don't use all_layers)
             position_type = config.get('position', {}).get('type', 'polygon')
-            if position_type != 'absolute' and source_layer_name:
+            if position_type not in ['absolute', 'external_dxf'] and source_layer_name:
                 if source_layer_name not in self.all_layers:
                     log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping block placement '{name}'.")
                     continue
@@ -1101,7 +1102,8 @@ class DXFExporter:
                 log_warning(f"Block placement '{name}' missing blockName")
                 continue
 
-            if block_name not in msp.doc.blocks:
+            # For external_dxf, block will be copied during placement, so skip this check
+            if position_type != 'external_dxf' and block_name not in msp.doc.blocks:
                 log_warning(f"Block '{block_name}' not found in document for placement '{name}'")
                 continue
 

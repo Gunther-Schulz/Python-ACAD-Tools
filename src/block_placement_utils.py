@@ -7,7 +7,8 @@ import ezdxf
 
 
 class BlockPlacementUtils:
-    """
+    """Shared utilities for block placement logic used by both sync and generated systems."""
+    
     # Class-level cache for external DXF documents
     _external_dxf_cache = {}
     
@@ -85,8 +86,6 @@ class BlockPlacementUtils:
         except Exception as e:
             log_warning(f"Error loading external DXF '{source_file}': {str(e)}")
             return points
-    
-    """Shared utilities for block placement logic used by both sync and generated systems."""
 
     @staticmethod
     def _calculate_proximity_based_offset(point, dx, dy, length, offset_config, all_layers):

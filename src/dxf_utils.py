@@ -1066,7 +1066,7 @@ def normalize_block_layers(block_layout, target_layer):
 
 def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize_layers_to=None):
     """
-    Copy a block definition from source DXF to target DXF.
+    Copy a block definition from source DXF to target DXF using ezdxf's Importer.
     Optionally normalize all internal entity layers to a target layer.
     
     Args:
@@ -1105,68 +1105,22 @@ def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize
                     log_info(f"Normalized {changed} entity layers in existing block '{block_name}'")
             return True
         
-        # Get source block
-        source_block = source_doc.blocks[block_name]
+        # Use ezdxf's Importer to properly copy block definitions
+        # This handles all the complexity of copying entities, nested blocks, and dependencies
+        from ezdxf.addons import Importer
         
-        # Get block attributes
-        block_attribs = {}
-        try:
-            if hasattr(source_block, 'block') and hasattr(source_block.block, 'dxf'):
-                block_attribs = source_block.block.dxf.all_existing_dxf_attribs()
-        except Exception as e:
-            log_debug(f"Could not get block attributes for '{block_name}': {str(e)}")
+        importer = Importer(source_doc, target_doc)
         
-        # Ensure name is set
-        if 'name' not in block_attribs:
-            block_attribs['name'] = block_name
+        # Import the block and all its dependencies
+        importer.import_block(block_name)
+        importer.finalize()
         
-        # Create new block in target
-        try:
-            new_block = target_doc.blocks.new(name=block_name, dxfattribs=block_attribs)
-        except Exception as e:
-            log_error(f"Error creating block '{block_name}': {str(e)}")
-            return False
-        
-        # Copy all entities from source block
-        for entity in source_block:
-            try:
-                if not hasattr(entity, 'dxf'):
-                    continue
-                
-                dxftype = entity.dxftype()
-                dxfattribs = entity.dxf.all_existing_dxf_attribs()
-                
-                # Remove attributes that should be regenerated
-                for attr in ['handle', 'owner', 'reactors']:
-                    if attr in dxfattribs:
-                        del dxfattribs[attr]
-                
-                # Handle nested blocks recursively
-                if dxftype == 'INSERT':
-                    nested_block_name = entity.dxf.name
-                    if nested_block_name and isinstance(nested_block_name, str):
-                        # Recursively copy nested block
-                        copy_block_definition_from_dxf(source_doc, target_doc, nested_block_name, normalize_layers_to)
-                
-                # Create new entity in target block
-                new_entity = new_block.add_entity(dxftype, dxfattribs=dxfattribs)
-                
-                # Copy additional data for complex entities
-                if dxftype == 'HATCH':
-                    # Copy hatch paths
-                    for path in entity.paths:
-                        new_entity.paths.add_polyline_path(
-                            path.vertices if hasattr(path, 'vertices') else [],
-                            is_closed=path.is_closed if hasattr(path, 'is_closed') else True
-                        )
-                
-            except Exception as e:
-                log_debug(f"Error copying entity in block '{block_name}': {str(e)}")
-                continue
+        log_debug(f"Successfully imported block '{block_name}' using ezdxf Importer")
         
         # Normalize layers if requested
-        if normalize_layers_to:
-            changed = normalize_block_layers(new_block, normalize_layers_to)
+        if normalize_layers_to and block_name in target_doc.blocks:
+            target_block = target_doc.blocks[block_name]
+            changed = normalize_block_layers(target_block, normalize_layers_to)
             log_info(f"Copied block '{block_name}' and normalized {changed} entity layers to '{normalize_layers_to}'")
         else:
             log_info(f"Copied block '{block_name}' from external DXF")
@@ -1175,6 +1129,8 @@ def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize
         
     except Exception as e:
         log_error(f"Error copying block definition '{block_name}': {str(e)}")
+        import traceback
+        log_debug(f"Traceback: {traceback.format_exc()}")
         return False
 
 def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
@@ -1187,8 +1143,18 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Cannot create block reference: block_name must be string, got {type(block_name)}")
         return None
 
-    if not msp or not hasattr(msp, 'doc') or not msp.doc:
-        log_warning("Cannot create block reference: invalid modelspace or document")
+    # Validate modelspace and document
+    # Note: Use 'is None' checks instead of 'not' because ezdxf layouts return False when empty
+    if msp is None:
+        log_warning("Cannot create block reference: msp is None")
+        return None
+    
+    if not hasattr(msp, 'doc'):
+        log_warning("Cannot create block reference: msp does not have 'doc' attribute")
+        return None
+    
+    if msp.doc is None:
+        log_warning("Cannot create block reference: msp.doc is None")
         return None
 
     if block_name not in msp.doc.blocks:
