@@ -50,3 +50,37 @@ blockPlacements:
     sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20250827_Klein Plasten Süd - Rockower Str.dxf"
     sourceLayer: "PVcase Transformers"
 
+# Trees from external DXF (all three planning areas)
+# Places "Baum" block at each tree location from source files
+# sourceLayer omitted - searches by block name across all layers
+
+- name: Trees I
+  sync: push
+  blockName: "Baum"
+  sourceBlockName: "PVcase Simple Tree H5 TRUNK0.75 TOPWIDTH15 TOPHEIGHT20"
+  scale: 1.0
+  layer: Bäume
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten I - Am Spargelberg 9m_bereinigt.dxf"
+
+- name: Trees II
+  sync: push
+  blockName: "Baum"
+  sourceBlockName: "PVcase Simple Tree H5 TRUNK0.75 TOPWIDTH15 TOPHEIGHT20"
+  scale: 1.0
+  layer: Bäume
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten II - Devener Weg_bereinigt.dxf"
+
+- name: Trees Süd
+  sync: push
+  blockName: "Baum"
+  sourceBlockName: "PVcase Simple Tree H5 TRUNK0.75 TOPWIDTH15 TOPHEIGHT20"
+  scale: 1.0
+  layer: Bäume
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20250827_Klein Plasten Süd - Rockower Str.dxf"
+

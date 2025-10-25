@@ -112,52 +112,31 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: 65c7de4e1e8ebf41ef6cd9d210d00359c5e02d6ef66769ffb27ea96dc694b917
-    last_sync_time: 1761385643
+    content_hash: 2c37f65545024f0f20e108d319a9e184ea07d5dd210ddd6d1d25e5a9f82dcdb5
+    last_sync_time: 1761401622
     sync_source: dxf
   center:
     x: 2867.888555200216
     y: 302.7121692818036
   frozenLayers:
-  - Grünfläche
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - PVcase Road
   - Legend_Legend NO_Flächen für die Landwirtschaft
   - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
   - Wege
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NO
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
-  - Wege Schraffur
   - T--Höhe_Höhenlinie_050
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
+  - RAHMEN
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - PV Transformer
+  - 05 Löschwasserkissen
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -209,12 +188,28 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
+  - Wege Schraffur
+  - Grünfläche
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -234,6 +229,13 @@ viewports:
   - Legend_Legend S_Verkehrsflächen
   - Legend_Main Legend_Flächen für die Landwirtschaft
   - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 - name: MapViewportNO
   color: magenta
   topLeft:
@@ -305,52 +307,31 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: 591fd75e6ea9c8349000ead440b8ab1a68504c465985fbadc4ee267ca9f2bb4b
-    last_sync_time: 1761385643
+    content_hash: 3a019f011f8374edd7a6b6baa002e638db4be4571049af8b01c42ac83512ff38
+    last_sync_time: 1761401622
     sync_source: dxf
   center:
     x: 4868.491665752536
     y: 292.7165591527828
   frozenLayers:
-  - Grünfläche
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - PVcase Road
   - Legend_Legend NO_Flächen für die Landwirtschaft
   - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
   - Wege
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
-  - Wege Schraffur
   - T--Höhe_Höhenlinie_050
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
+  - RAHMEN
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - PV Transformer
+  - 05 Löschwasserkissen
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -402,12 +383,28 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
+  - Wege Schraffur
+  - Grünfläche
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -427,6 +424,13 @@ viewports:
   - Legend_Legend S_Verkehrsflächen
   - Legend_Main Legend_Flächen für die Landwirtschaft
   - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 - name: MapViewportS
   color: magenta
   topLeft:
@@ -497,52 +501,31 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: 636e0e0cd79fc5a52e8dac3301d798a845748d6a10046901f88fe98a0925b700
-    last_sync_time: 1761385643
+    content_hash: 74c85163c4546190b94852b6dcb09f82c220dbe41209a0d427a8a1bf30bb7af1
+    last_sync_time: 1761401622
     sync_source: dxf
   center:
     x: 6869.144582332245
     y: 391.8814999718617
   frozenLayers:
-  - Grünfläche
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - PVcase Road
   - Legend_Legend NO_Flächen für die Landwirtschaft
   - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
   - Wege
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO
-  - Geltungsbereich NO 2
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch NO
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
-  - Wege Schraffur
   - T--Höhe_Höhenlinie_050
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
+  - RAHMEN
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - PV Transformer
+  - 05 Löschwasserkissen
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -594,12 +577,28 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
+  - Wege Schraffur
+  - Grünfläche
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -619,6 +618,13 @@ viewports:
   - Legend_Legend S_Verkehrsflächen
   - Legend_Main Legend_Flächen für die Landwirtschaft
   - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS

@@ -18,7 +18,7 @@ class BlockPlacementUtils:
         Get insertion points from INSERT entities in an external DXF file.
         
         Args:
-            position_config: Position configuration with sourceFile and sourceLayer
+            position_config: Position configuration with sourceFile and optional sourceLayer
             offset_x, offset_y: Additional offsets to apply
             source_block_name: Optional block name to filter by (if None, uses all INSERTs on layer)
         
@@ -31,8 +31,13 @@ class BlockPlacementUtils:
         source_file = position_config.get('sourceFile')
         source_layer = position_config.get('sourceLayer')
         
-        if not source_file or not source_layer:
-            log_warning("external_dxf position type requires 'sourceFile' and 'sourceLayer'")
+        if not source_file:
+            log_warning("external_dxf position type requires 'sourceFile'")
+            return points
+        
+        # sourceLayer is optional if sourceBlockName is provided
+        if not source_layer and not source_block_name:
+            log_warning("external_dxf position type requires either 'sourceLayer' or 'sourceBlockName'")
             return points
         
         try:
@@ -48,27 +53,34 @@ class BlockPlacementUtils:
                 doc = BlockPlacementUtils._external_dxf_cache[full_path]
                 log_debug(f"Using cached external DXF: {full_path}")
             
-            # Check if layer exists
-            if source_layer not in [layer.dxf.name for layer in doc.layers]:
-                log_warning(f"Layer '{source_layer}' not found in external DXF: {source_file}")
-                return points
-            
-            # Query for INSERT entities on the source layer
             msp = doc.modelspace()
-            query = f'INSERT[layer=="{source_layer}"]'
-            inserts = list(msp.query(query))
             
-            if not inserts:
-                log_warning(f"No INSERT entities found on layer '{source_layer}' in {source_file}")
-                return points
-            
-            # Filter by block name if specified
-            if source_block_name:
-                filtered_inserts = [ins for ins in inserts if ins.dxf.name == source_block_name]
-                log_info(f"Found {len(filtered_inserts)} '{source_block_name}' INSERT entities (of {len(inserts)} total) on layer '{source_layer}' in external DXF")
-                inserts = filtered_inserts
+            # Query strategy depends on what's provided
+            if source_layer:
+                # Check if layer exists
+                if source_layer not in [layer.dxf.name for layer in doc.layers]:
+                    log_warning(f"Layer '{source_layer}' not found in external DXF: {source_file}")
+                    return points
+                
+                # Query for INSERT entities on the source layer
+                query = f'INSERT[layer=="{source_layer}"]'
+                inserts = list(msp.query(query))
+                
+                if not inserts:
+                    log_warning(f"No INSERT entities found on layer '{source_layer}' in {source_file}")
+                    return points
+                
+                # Filter by block name if specified
+                if source_block_name:
+                    filtered_inserts = [ins for ins in inserts if ins.dxf.name == source_block_name]
+                    log_info(f"Found {len(filtered_inserts)} '{source_block_name}' INSERT entities (of {len(inserts)} total) on layer '{source_layer}' in external DXF")
+                    inserts = filtered_inserts
+                else:
+                    log_info(f"Found {len(inserts)} INSERT entities on layer '{source_layer}' in external DXF")
             else:
-                log_info(f"Found {len(inserts)} INSERT entities on layer '{source_layer}' in external DXF")
+                # No layer specified - query all INSERTs and filter by block name
+                inserts = [ins for ins in msp.query('INSERT') if ins.dxf.name == source_block_name]
+                log_info(f"Found {len(inserts)} '{source_block_name}' INSERT entities across all layers in external DXF")
             
             if not inserts:
                 log_warning(f"No matching INSERT entities found after filtering")
