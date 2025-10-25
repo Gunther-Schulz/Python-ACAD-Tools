@@ -3,9 +3,89 @@ import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data
+import ezdxf
 
 
 class BlockPlacementUtils:
+    """
+    # Class-level cache for external DXF documents
+    _external_dxf_cache = {}
+    
+    @staticmethod
+    def _get_insertion_points_from_external_dxf(position_config, offset_x=0, offset_y=0):
+        """
+        Get insertion points from INSERT entities in an external DXF file.
+        
+        Args:
+            position_config: Position configuration with sourceFile and sourceLayer
+            offset_x, offset_y: Additional offsets to apply
+        
+        Returns:
+            List of tuples: [(x, y, rotation), ...]
+        """
+        from src.utils import resolve_path, log_info, log_warning, log_debug
+        
+        points = []
+        source_file = position_config.get('sourceFile')
+        source_layer = position_config.get('sourceLayer')
+        
+        if not source_file or not source_layer:
+            log_warning("external_dxf position type requires 'sourceFile' and 'sourceLayer'")
+            return points
+        
+        try:
+            # Resolve path using project folder prefix
+            full_path = resolve_path(source_file)
+            
+            # Cache external DXF documents to avoid reloading
+            if full_path not in BlockPlacementUtils._external_dxf_cache:
+                log_debug(f"Loading external DXF: {full_path}")
+                doc = ezdxf.readfile(full_path)
+                BlockPlacementUtils._external_dxf_cache[full_path] = doc
+            else:
+                doc = BlockPlacementUtils._external_dxf_cache[full_path]
+                log_debug(f"Using cached external DXF: {full_path}")
+            
+            # Check if layer exists
+            if source_layer not in [layer.dxf.name for layer in doc.layers]:
+                log_warning(f"Layer '{source_layer}' not found in external DXF: {source_file}")
+                return points
+            
+            # Query for INSERT entities on the source layer
+            msp = doc.modelspace()
+            query = f'INSERT[layer=="{source_layer}"]'
+            inserts = list(msp.query(query))
+            
+            if not inserts:
+                log_warning(f"No INSERT entities found on layer '{source_layer}' in {source_file}")
+                return points
+            
+            log_info(f"Found {len(inserts)} INSERT entities on layer '{source_layer}' in external DXF")
+            
+            # Extract insertion points and rotations
+            for insert in inserts:
+                try:
+                    insert_point = insert.dxf.insert
+                    rotation = insert.dxf.rotation if hasattr(insert.dxf, 'rotation') else 0
+                    
+                    x = insert_point.x + offset_x
+                    y = insert_point.y + offset_y
+                    
+                    points.append((x, y, rotation))
+                    
+                except Exception as e:
+                    log_debug(f"Error extracting insertion point: {str(e)}")
+                    continue
+            
+            return points
+            
+        except FileNotFoundError:
+            log_warning(f"External DXF file not found: {source_file}")
+            return points
+        except Exception as e:
+            log_warning(f"Error loading external DXF '{source_file}': {str(e)}")
+            return points
+    
     """Shared utilities for block placement logic used by both sync and generated systems."""
 
     @staticmethod
@@ -98,6 +178,10 @@ class BlockPlacementUtils:
             y = position_config.get('y', 0)
             # Return a 3-tuple format (x, y, rotation) for consistency
             return [(x + offset_x, y + offset_y, None)]
+
+        # Handle external DXF positioning - copy INSERT entities from external DXF
+        if position_type == 'external_dxf':
+            return BlockPlacementUtils._get_insertion_points_from_external_dxf(position_config, offset_x, offset_y)
 
         # For non-absolute positioning, we need a source layer
         source_layer = position_config.get('sourceLayer')
@@ -270,6 +354,37 @@ class BlockPlacementUtils:
         if layer_name not in space.doc.layers:
             space.doc.layers.new(layer_name)
 
+        # Handle external_dxf position type - copy block definitions from external DXF
+        position_config = config.get('position', {})
+        if position_config.get('type') == 'external_dxf':
+            from src.dxf_utils import copy_block_definition_from_dxf
+            
+            source_file = position_config.get('sourceFile')
+            if source_file:
+                # Get cached external DXF
+                from src.utils import resolve_path
+                full_path = resolve_path(source_file)
+                
+                if full_path in BlockPlacementUtils._external_dxf_cache:
+                    source_doc = BlockPlacementUtils._external_dxf_cache[full_path]
+                    block_name = config.get('blockName')
+                    
+                    if block_name:
+                        # Check if normalization is requested
+                        normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
+                        
+                        # Copy block definition (with optional layer normalization)
+                        success = copy_block_definition_from_dxf(
+                            source_doc, 
+                            space.doc, 
+                            block_name,
+                            normalize_layers_to=normalize_to
+                        )
+                        
+                        if not success:
+                            log_warning(f"Failed to copy block definition '{block_name}' from external DXF")
+                            return []
+
         created_blocks = []
 
         for point_data in points_and_rotations:
@@ -342,9 +457,20 @@ class BlockPlacementUtils:
         if layer_name not in space.doc.layers:
             space.doc.layers.new(layer_name)
 
+        # Handle normalizeBlockLayers if requested
+        block_name = config.get('blockName')
+        if config.get('normalizeBlockLayers', False) and block_name:
+            from src.dxf_utils import normalize_block_layers
+            
+            if block_name in space.doc.blocks:
+                block_layout = space.doc.blocks[block_name]
+                changed = normalize_block_layers(block_layout, layer_name)
+                if changed > 0:
+                    log_debug(f"Normalized {changed} entity layers in block '{block_name}' to '{layer_name}'")
+
         block_ref = add_block_reference(
             space,
-            config['blockName'],
+            block_name,
             point,
             layer_name,
             scale=config.get('scale', 1.0),

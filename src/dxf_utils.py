@@ -1025,6 +1025,158 @@ def initialize_document(doc):
 def get_available_blocks(doc):
     return set(block.name for block in doc.blocks if not block.name.startswith('*'))
 
+def normalize_block_layers(block_layout, target_layer):
+    """
+    Recursively normalize all entity layers within a block definition to a target layer.
+    
+    Args:
+        block_layout: Block layout to normalize
+        target_layer: Target layer name to remap all entities to
+    
+    Returns:
+        int: Number of entities whose layers were changed
+    """
+    changed_count = 0
+    
+    try:
+        for entity in block_layout:
+            # Skip if entity doesn't have a layer attribute
+            if not hasattr(entity, 'dxf') or not hasattr(entity.dxf, 'layer'):
+                continue
+            
+            # Change entity layer
+            old_layer = entity.dxf.layer
+            if old_layer != target_layer:
+                entity.dxf.layer = target_layer
+                changed_count += 1
+                log_debug(f"Normalized layer: '{old_layer}' → '{target_layer}'")
+            
+            # Handle nested blocks recursively
+            if entity.dxftype() == 'INSERT':
+                nested_block_name = entity.dxf.name
+                if nested_block_name and nested_block_name in block_layout.doc.blocks:
+                    nested_block = block_layout.doc.blocks[nested_block_name]
+                    nested_count = normalize_block_layers(nested_block, target_layer)
+                    changed_count += nested_count
+    
+    except Exception as e:
+        log_warning(f"Error normalizing block layers: {str(e)}")
+    
+    return changed_count
+
+def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize_layers_to=None):
+    """
+    Copy a block definition from source DXF to target DXF.
+    Optionally normalize all internal entity layers to a target layer.
+    
+    Args:
+        source_doc: Source DXF document
+        target_doc: Target DXF document
+        block_name: Name of block to copy
+        normalize_layers_to: If specified, remap all entity layers in block to this layer
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Validate block name
+        if not isinstance(block_name, str) or not block_name:
+            log_warning(f"Invalid block name: {block_name}")
+            return False
+        
+        # Skip anonymous blocks
+        if block_name.startswith('*'):
+            log_debug(f"Skipping anonymous block: {block_name}")
+            return False
+        
+        # Check if block exists in source
+        if block_name not in source_doc.blocks:
+            log_warning(f"Block '{block_name}' not found in source document")
+            return False
+        
+        # If block already exists in target, skip (or optionally update)
+        if block_name in target_doc.blocks:
+            log_debug(f"Block '{block_name}' already exists in target document")
+            # If normalization requested, normalize the existing block
+            if normalize_layers_to:
+                existing_block = target_doc.blocks[block_name]
+                changed = normalize_block_layers(existing_block, normalize_layers_to)
+                if changed > 0:
+                    log_info(f"Normalized {changed} entity layers in existing block '{block_name}'")
+            return True
+        
+        # Get source block
+        source_block = source_doc.blocks[block_name]
+        
+        # Get block attributes
+        block_attribs = {}
+        try:
+            if hasattr(source_block, 'block') and hasattr(source_block.block, 'dxf'):
+                block_attribs = source_block.block.dxf.all_existing_dxf_attribs()
+        except Exception as e:
+            log_debug(f"Could not get block attributes for '{block_name}': {str(e)}")
+        
+        # Ensure name is set
+        if 'name' not in block_attribs:
+            block_attribs['name'] = block_name
+        
+        # Create new block in target
+        try:
+            new_block = target_doc.blocks.new(name=block_name, dxfattribs=block_attribs)
+        except Exception as e:
+            log_error(f"Error creating block '{block_name}': {str(e)}")
+            return False
+        
+        # Copy all entities from source block
+        for entity in source_block:
+            try:
+                if not hasattr(entity, 'dxf'):
+                    continue
+                
+                dxftype = entity.dxftype()
+                dxfattribs = entity.dxf.all_existing_dxf_attribs()
+                
+                # Remove attributes that should be regenerated
+                for attr in ['handle', 'owner', 'reactors']:
+                    if attr in dxfattribs:
+                        del dxfattribs[attr]
+                
+                # Handle nested blocks recursively
+                if dxftype == 'INSERT':
+                    nested_block_name = entity.dxf.name
+                    if nested_block_name and isinstance(nested_block_name, str):
+                        # Recursively copy nested block
+                        copy_block_definition_from_dxf(source_doc, target_doc, nested_block_name, normalize_layers_to)
+                
+                # Create new entity in target block
+                new_entity = new_block.add_entity(dxftype, dxfattribs=dxfattribs)
+                
+                # Copy additional data for complex entities
+                if dxftype == 'HATCH':
+                    # Copy hatch paths
+                    for path in entity.paths:
+                        new_entity.paths.add_polyline_path(
+                            path.vertices if hasattr(path, 'vertices') else [],
+                            is_closed=path.is_closed if hasattr(path, 'is_closed') else True
+                        )
+                
+            except Exception as e:
+                log_debug(f"Error copying entity in block '{block_name}': {str(e)}")
+                continue
+        
+        # Normalize layers if requested
+        if normalize_layers_to:
+            changed = normalize_block_layers(new_block, normalize_layers_to)
+            log_info(f"Copied block '{block_name}' and normalized {changed} entity layers to '{normalize_layers_to}'")
+        else:
+            log_info(f"Copied block '{block_name}' from external DXF")
+        
+        return True
+        
+    except Exception as e:
+        log_error(f"Error copying block definition '{block_name}': {str(e)}")
+        return False
+
 def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
     # Validate input parameters
     if not block_name:

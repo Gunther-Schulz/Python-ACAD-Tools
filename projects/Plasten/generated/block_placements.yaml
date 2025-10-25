@@ -13,3 +13,16 @@ blockPlacements:
     method: middle
     lineOffset: -1
 
+# PV Transformers from external DXF
+# Copies blocks "as is" from source file, including all internal geometry
+- name: PV Transformers
+  sync: push
+  blockName: "PVcase transformer"  # Block name in the external DXF
+  scale: 1.0
+  layer: PV Transformers
+  normalizeBlockLayers: true  # Remap all internal entity layers to "PV Transformers"
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten I - Am Spargelberg 9m_bereinigt.dxf"
+    sourceLayer: "PVcase Transformers"  # Layer where transformer INSERTs are located
+
