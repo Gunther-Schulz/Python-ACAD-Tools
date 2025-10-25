@@ -112,13 +112,44 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: cbe18c9b04b4d39cc47fb15b931a28eae1c781274e9332133aeae758a1a61607
-    last_sync_time: 1761381547
-    sync_source: yaml
+    content_hash: 65c7de4e1e8ebf41ef6cd9d210d00359c5e02d6ef66769ffb27ea96dc694b917
+    last_sync_time: 1761383302
+    sync_source: dxf
   center:
     x: 2867.888555200216
     y: 302.7121692818036
   frozenLayers:
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - Wege Schraffur
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Grünfläche
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -170,34 +201,19 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - PV Modules Schraffur
-  - PV Transformers
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - RAHMEN
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
+  - T--Höhe_Höhenlinie_050
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
   - Flur
   - Gemarkung
   - Gemeinde
@@ -218,21 +234,6 @@ viewports:
   - Plantext
   - Legend_Main Legend_Title
   - Legend_Legend NW_Title
-  - Grünfläche
-  - T--Höhe_Höhenlinie_050
-  - T--Höhe_Höhenlinie_100
-  - 0 Legende
-  - 0 Blattrahmen
-  - Wege Schraffur
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - RAHMEN
 - name: MapViewportNO
   color: magenta
   topLeft:
@@ -304,13 +305,44 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: 2fd0f018da967f9b8288e3067ae6ff5aa4fd167aa83f589e71d5fbb234892f8e
-    last_sync_time: 1761381547
-    sync_source: yaml
+    content_hash: 591fd75e6ea9c8349000ead440b8ab1a68504c465985fbadc4ee267ca9f2bb4b
+    last_sync_time: 1761383302
+    sync_source: dxf
   center:
     x: 4868.491665752536
     y: 292.7165591527828
   frozenLayers:
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - Wege Schraffur
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Grünfläche
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -362,34 +394,19 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - PV Modules Schraffur
-  - PV Transformers
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - RAHMEN
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
+  - T--Höhe_Höhenlinie_050
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
   - Flur
   - Gemarkung
   - Gemeinde
@@ -410,21 +427,6 @@ viewports:
   - Plantext
   - Legend_Main Legend_Title
   - Legend_Legend NW_Title
-  - Grünfläche
-  - T--Höhe_Höhenlinie_050
-  - T--Höhe_Höhenlinie_100
-  - 0 Legende
-  - 0 Blattrahmen
-  - Wege Schraffur
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - RAHMEN
 - name: MapViewportS
   color: magenta
   topLeft:
@@ -495,13 +497,44 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: f979edbc5f36e37486868618ced0e3fad8c8da4f7a610ca0279d0d536fa95bfd
-    last_sync_time: 1761381547
-    sync_source: yaml
+    content_hash: 636e0e0cd79fc5a52e8dac3301d798a845748d6a10046901f88fe98a0925b700
+    last_sync_time: 1761383302
+    sync_source: dxf
   center:
     x: 6869.144582332245
     y: 391.8814999718617
   frozenLayers:
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - Wege Schraffur
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Grünfläche
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -553,34 +586,19 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - PV Modules Schraffur
-  - PV Transformers
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
+  - RAHMEN
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
+  - T--Höhe_Höhenlinie_050
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
   - Flur
   - Gemarkung
   - Gemeinde
@@ -601,21 +619,6 @@ viewports:
   - Plantext
   - Legend_Main Legend_Title
   - Legend_Legend NW_Title
-  - Grünfläche
-  - T--Höhe_Höhenlinie_050
-  - T--Höhe_Höhenlinie_100
-  - 0 Legende
-  - 0 Blattrahmen
-  - Wege Schraffur
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - RAHMEN
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
