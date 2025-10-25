@@ -192,6 +192,7 @@ class LegendCreator:
 
         block_symbol = item.get('blockSymbol')
         block_symbol_scale = item.get('blockSymbolScale', 1.0)
+        block_symbol_rotation = item.get('blockSymbolRotation', 0.0)
         create_hatch = item.get('applyHatch', False)
 
         x1, y1 = self.position['x'], self.current_y
@@ -202,13 +203,13 @@ class LegendCreator:
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale, block_symbol_rotation)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation)
         elif item_type == 'diagonal_line':
-            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -299,7 +300,7 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0):
         entities = []
 
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
@@ -338,14 +339,15 @@ class LegendCreator:
                 block_symbol,
                 ((x1 + x2) / 2, (y1 + y2) / 2),
                 layer_name,
-                scale=block_symbol_scale
+                scale=block_symbol_scale,
+                rotation=block_symbol_rotation
             )
             if symbol_entity:
                 entities.append(symbol_entity)
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0):
         entities = []
 
         middle_y = (y1 + y2) / 2
@@ -361,14 +363,15 @@ class LegendCreator:
                 block_symbol,
                 ((x1 + x2) / 2, (y1 + y2) / 2),
                 layer_name,
-                scale=block_symbol_scale
+                scale=block_symbol_scale,
+                rotation=block_symbol_rotation
             )
             if symbol_entity:
                 entities.append(symbol_entity)
 
         return entities
 
-    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
+    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0):
         entities = []
 
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
@@ -387,14 +390,15 @@ class LegendCreator:
                 block_symbol,
                 ((x1 + x2) / 2, (y1 + y2) / 2),
                 layer_name,
-                scale=block_symbol_scale
+                scale=block_symbol_scale,
+                rotation=block_symbol_rotation
             )
             if symbol_entity:
                 entities.append(symbol_entity)
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0):
         entities = []
 
         if block_symbol:
@@ -403,7 +407,8 @@ class LegendCreator:
                 block_symbol,
                 ((x1 + x2) / 2, (y1 + y2) / 2),
                 layer_name,
-                scale=block_symbol_scale
+                scale=block_symbol_scale,
+                rotation=block_symbol_rotation
             )
             if symbol_entity:
                 entities.append(symbol_entity)
