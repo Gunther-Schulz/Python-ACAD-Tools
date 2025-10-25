@@ -1022,6 +1022,8 @@ class DXFExporter:
         path_arrays = self.project_settings.get('pathArrays', [])
         log_debug(f"Processing {len(path_arrays)} path array configurations")
 
+        # Pre-validate and filter configs
+        valid_configs = []
         for config in path_arrays:
             name = config.get('name')
             source_layer_name = config.get('sourceLayer')
@@ -1039,28 +1041,48 @@ class DXFExporter:
                 log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
                 continue
 
-            remove_entities_by_layer(msp, name, self.script_identifier)
+            valid_configs.append(config)
 
-            block_name = config['block']
-            spacing = config['spacing']
-            scale = config.get('scale', 1.0)
-            rotation = config.get('rotation', 0.0)
-            buffer_distance = config.get('bufferDistance', 0.0)
-            path_offset = config.get('pathOffset', 0.0)
-            show_debug_visual = config.get('showDebugVisual', False)
-            adjust_for_vertices = config.get('adjustForVertices', False)
-            all_edges = config.get('all_edges', False)
+        # Group configs by target layer (name is used as target layer for path arrays)
+        layer_groups = {}
+        for config in valid_configs:
+            target_layer = config.get('name')  # Path arrays use 'name' as target layer
+            if target_layer not in layer_groups:
+                layer_groups[target_layer] = []
+            layer_groups[target_layer].append(config)
 
-            log_debug(f"Creating path array: {name}")
-            log_debug(f"Source layer: {source_layer_name}")
-            log_debug(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
-            log_debug(f"Path offset: {path_offset}")
-            log_debug(f"All edges: {all_edges}")
+        log_debug(f"Grouped {len(valid_configs)} configs into {len(layer_groups)} layer groups")
 
-            create_path_array(msp, source_layer_name, name, block_name,
-                             spacing, buffer_distance, scale, rotation,
-                             show_debug_visual, self.all_layers,
-                             adjust_for_vertices, path_offset, all_edges)
+        # Process each layer group
+        for target_layer, configs in layer_groups.items():
+            # Clean layer ONCE for entire group
+            log_debug(f"Cleaning layer '{target_layer}' for {len(configs)} path array(s)")
+            remove_entities_by_layer(msp, target_layer, self.script_identifier)
+
+            # Process all configs for this layer
+            for config in configs:
+                name = config.get('name')
+                source_layer_name = config.get('sourceLayer')
+                block_name = config['block']
+                spacing = config['spacing']
+                scale = config.get('scale', 1.0)
+                rotation = config.get('rotation', 0.0)
+                buffer_distance = config.get('bufferDistance', 0.0)
+                path_offset = config.get('pathOffset', 0.0)
+                show_debug_visual = config.get('showDebugVisual', False)
+                adjust_for_vertices = config.get('adjustForVertices', False)
+                all_edges = config.get('all_edges', False)
+
+                log_debug(f"Creating path array: {name}")
+                log_debug(f"Source layer: {source_layer_name}")
+                log_debug(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
+                log_debug(f"Path offset: {path_offset}")
+                log_debug(f"All edges: {all_edges}")
+
+                create_path_array(msp, source_layer_name, name, block_name,
+                                 spacing, buffer_distance, scale, rotation,
+                                 show_debug_visual, self.all_layers,
+                                 adjust_for_vertices, path_offset, all_edges)
 
         log_debug("Finished processing all path array configurations")
 
@@ -1071,6 +1093,8 @@ class DXFExporter:
         block_placements = self.project_settings.get('blockPlacements', [])
         log_debug(f"Processing {len(block_placements)} block placement configurations")
 
+        # Pre-validate and filter configs
+        valid_configs = []
         for config in block_placements:
             name = config.get('name')
             source_layer_name = config.get('position', {}).get('sourceLayer')
@@ -1092,11 +1116,6 @@ class DXFExporter:
                     log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping block placement '{name}'.")
                     continue
 
-            # Clear existing blocks for this placement
-            # Use the same layer resolution as place_blocks_bulk to ensure cleanup works correctly
-            target_layer = config.get('layer', name)
-            remove_entities_by_layer(msp, target_layer, self.script_identifier)
-
             block_name = config.get('blockName')
             if not block_name:
                 log_warning(f"Block placement '{name}' missing blockName")
@@ -1107,16 +1126,41 @@ class DXFExporter:
                 log_warning(f"Block '{block_name}' not found in document for placement '{name}'")
                 continue
 
-            log_debug(f"Creating block placement: {name}")
-            log_debug(f"Block: {block_name}, Source layer: {source_layer_name}")
-            log_debug(f"Position type: {position_type}, Method: {config.get('position', {}).get('method', 'centroid')}")
+            valid_configs.append(config)
 
-            # Use shared placement utilities to place blocks
-            created_blocks = BlockPlacementUtils.place_blocks_bulk(
-                msp, config, self.all_layers, self.script_identifier
-            )
+        # Group configs by target layer to avoid cleaning the same layer multiple times
+        layer_groups = {}
+        for config in valid_configs:
+            target_layer = config.get('layer', config.get('name'))
+            if target_layer not in layer_groups:
+                layer_groups[target_layer] = []
+            layer_groups[target_layer].append(config)
 
-            log_debug(f"Placed {len(created_blocks)} blocks for placement '{name}'")
+        log_debug(f"Grouped {len(valid_configs)} configs into {len(layer_groups)} layer groups")
+
+        # Process each layer group
+        for target_layer, configs in layer_groups.items():
+            # Clean layer ONCE for entire group
+            log_debug(f"Cleaning layer '{target_layer}' for {len(configs)} block placement(s)")
+            remove_entities_by_layer(msp, target_layer, self.script_identifier)
+
+            # Process all configs for this layer
+            for config in configs:
+                name = config.get('name')
+                source_layer_name = config.get('position', {}).get('sourceLayer')
+                position_type = config.get('position', {}).get('type', 'polygon')
+                block_name = config.get('blockName')
+
+                log_debug(f"Creating block placement: {name}")
+                log_debug(f"Block: {block_name}, Source layer: {source_layer_name}")
+                log_debug(f"Position type: {position_type}, Method: {config.get('position', {}).get('method', 'centroid')}")
+
+                # Use shared placement utilities to place blocks
+                created_blocks = BlockPlacementUtils.place_blocks_bulk(
+                    msp, config, self.all_layers, self.script_identifier
+                )
+
+                log_debug(f"Placed {len(created_blocks)} blocks for placement '{name}'")
 
         log_debug("Finished processing all block placement configurations")
 

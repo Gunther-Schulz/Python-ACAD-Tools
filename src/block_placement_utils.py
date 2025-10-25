@@ -13,13 +13,14 @@ class BlockPlacementUtils:
     _external_dxf_cache = {}
     
     @staticmethod
-    def _get_insertion_points_from_external_dxf(position_config, offset_x=0, offset_y=0):
+    def _get_insertion_points_from_external_dxf(position_config, offset_x=0, offset_y=0, source_block_name=None):
         """
         Get insertion points from INSERT entities in an external DXF file.
         
         Args:
             position_config: Position configuration with sourceFile and sourceLayer
             offset_x, offset_y: Additional offsets to apply
+            source_block_name: Optional block name to filter by (if None, uses all INSERTs on layer)
         
         Returns:
             List of tuples: [(x, y, rotation), ...]
@@ -61,7 +62,17 @@ class BlockPlacementUtils:
                 log_warning(f"No INSERT entities found on layer '{source_layer}' in {source_file}")
                 return points
             
-            log_info(f"Found {len(inserts)} INSERT entities on layer '{source_layer}' in external DXF")
+            # Filter by block name if specified
+            if source_block_name:
+                filtered_inserts = [ins for ins in inserts if ins.dxf.name == source_block_name]
+                log_info(f"Found {len(filtered_inserts)} '{source_block_name}' INSERT entities (of {len(inserts)} total) on layer '{source_layer}' in external DXF")
+                inserts = filtered_inserts
+            else:
+                log_info(f"Found {len(inserts)} INSERT entities on layer '{source_layer}' in external DXF")
+            
+            if not inserts:
+                log_warning(f"No matching INSERT entities found after filtering")
+                return points
             
             # Extract insertion points and rotations
             for insert in inserts:
@@ -180,6 +191,8 @@ class BlockPlacementUtils:
 
         # Handle external DXF positioning - copy INSERT entities from external DXF
         if position_type == 'external_dxf':
+            # Note: sourceBlockName filtering is handled by place_blocks_bulk/place_block_single
+            # This method is also used by other callers, so we don't filter here
             return BlockPlacementUtils._get_insertion_points_from_external_dxf(position_config, offset_x, offset_y)
 
         # For non-absolute positioning, we need a source layer
@@ -341,8 +354,71 @@ class BlockPlacementUtils:
         Returns:
             List of created block references
         """
-        points_and_rotations = BlockPlacementUtils.get_insertion_points(config.get('position', {}), all_layers)
         name = config.get('name')
+        position_config = config.get('position', {})
+        
+        # Handle external_dxf with optional sourceBlockName filtering
+        if position_config.get('type') == 'external_dxf':
+            source_block_name = config.get('sourceBlockName')
+            block_name = config.get('blockName')
+            
+            # Get insertion points with optional block name filter
+            offset_x = position_config.get('offset', {}).get('x', 0)
+            offset_y = position_config.get('offset', {}).get('y', 0)
+            points_and_rotations = BlockPlacementUtils._get_insertion_points_from_external_dxf(
+                position_config, offset_x, offset_y, source_block_name
+            )
+            
+            # Only copy block definition if sourceBlockName is not specified OR equals blockName
+            # This allows placing a different block at the source block's positions
+            should_copy_block = not source_block_name or source_block_name == block_name
+            
+            if should_copy_block:
+                from src.dxf_utils import copy_block_definition_from_dxf
+                from src.utils import resolve_path
+                
+                source_file = position_config.get('sourceFile')
+                if source_file:
+                    full_path = resolve_path(source_file)
+                    
+                    if full_path in BlockPlacementUtils._external_dxf_cache:
+                        source_doc = BlockPlacementUtils._external_dxf_cache[full_path]
+                        
+                        if block_name:
+                            # Ensure layer exists for normalization
+                            layer_name = config.get('layer', name)
+                            if layer_name not in space.doc.layers:
+                                space.doc.layers.new(layer_name)
+                            
+                            # Check if normalization is requested
+                            normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
+                            
+                            # Copy block definition (with optional layer normalization)
+                            success = copy_block_definition_from_dxf(
+                                source_doc, 
+                                space.doc, 
+                                block_name,
+                                normalize_layers_to=normalize_to
+                            )
+                            
+                            if not success:
+                                log_warning(f"Failed to copy block definition '{block_name}' from external DXF")
+                                return []
+                            
+                            if source_block_name:
+                                log_info(f"Copied block '{block_name}' from external DXF (same as sourceBlockName)")
+                            else:
+                                log_info(f"Copied block '{block_name}' from external DXF")
+            else:
+                # Using a different block - verify it exists in target document
+                if block_name not in space.doc.blocks:
+                    log_warning(f"Block '{block_name}' not found in document (sourceBlockName='{source_block_name}' specifies different block)")
+                    log_warning(f"Available blocks: {[b.name for b in space.doc.blocks if not b.name.startswith('*')][:10]}")
+                    return []
+                log_info(f"Using existing block '{block_name}' at positions from '{source_block_name}' in external DXF")
+        else:
+            # Standard positioning (not external_dxf)
+            points_and_rotations = BlockPlacementUtils.get_insertion_points(position_config, all_layers)
 
         if not points_and_rotations:
             log_warning(f"No insertion points found for block placement '{name}'")
@@ -352,37 +428,6 @@ class BlockPlacementUtils:
         layer_name = config.get('layer', name)
         if layer_name not in space.doc.layers:
             space.doc.layers.new(layer_name)
-
-        # Handle external_dxf position type - copy block definitions from external DXF
-        position_config = config.get('position', {})
-        if position_config.get('type') == 'external_dxf':
-            from src.dxf_utils import copy_block_definition_from_dxf
-            
-            source_file = position_config.get('sourceFile')
-            if source_file:
-                # Get cached external DXF
-                from src.utils import resolve_path
-                full_path = resolve_path(source_file)
-                
-                if full_path in BlockPlacementUtils._external_dxf_cache:
-                    source_doc = BlockPlacementUtils._external_dxf_cache[full_path]
-                    block_name = config.get('blockName')
-                    
-                    if block_name:
-                        # Check if normalization is requested
-                        normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
-                        
-                        # Copy block definition (with optional layer normalization)
-                        success = copy_block_definition_from_dxf(
-                            source_doc, 
-                            space.doc, 
-                            block_name,
-                            normalize_layers_to=normalize_to
-                        )
-                        
-                        if not success:
-                            log_warning(f"Failed to copy block definition '{block_name}' from external DXF")
-                            return []
 
         created_blocks = []
 
