@@ -263,17 +263,23 @@ class LayerProcessor:
             # Get entities from the layer
             msp = doc.modelspace()
             
-            # Build query for entity types if specified
-            if entity_types and len(entity_types) == 1:
+            # Build query for entity types
+            # If we have preprocessors (like block_exploder), query for all entities first
+            # Entity type filtering will happen after preprocessing
+            if preprocessors:
+                query = f'*[layer=="{source_layer}"]'
+            elif entity_types and len(entity_types) == 1:
                 query = f'{entity_types[0]}[layer=="{source_layer}"]'
             else:
                 query = f'*[layer=="{source_layer}"]'
             
             entities = list(msp.query(query))
             
-            # Apply multiple entity type filter if specified
-            if entity_types and len(entity_types) > 1:
-                entities = [e for e in entities if e.dxftype() in entity_types]
+            # Apply entity type filter if specified and no preprocessors
+            # (preprocessors may change entity types, so filter after)
+            if entity_types and not preprocessors:
+                if len(entity_types) > 1:
+                    entities = [e for e in entities if e.dxftype() in entity_types]
             
             log_debug(f"Found {len(entities)} entities in layer '{source_layer}'")
             
@@ -284,14 +290,30 @@ class LayerProcessor:
                 'basepoint_extractor': extract_entity_basepoints
             }
             
-            for preprocessor_name in preprocessors:
+            for preprocessor_config in preprocessors:
+                # Support both simple string format and dict format with options
+                if isinstance(preprocessor_config, str):
+                    preprocessor_name = preprocessor_config
+                    preprocessor_options = {}
+                elif isinstance(preprocessor_config, dict):
+                    preprocessor_name = preprocessor_config.get('name')
+                    preprocessor_options = {k: v for k, v in preprocessor_config.items() if k != 'name'}
+                else:
+                    log_warning(f"Invalid preprocessor configuration: {preprocessor_config}")
+                    continue
+                
                 preprocessor = preprocessor_map.get(preprocessor_name)
                 if preprocessor:
-                    log_debug(f"Applying preprocessor: {preprocessor_name}")
-                    entities = preprocessor(entities, source_layer)
+                    log_debug(f"Applying preprocessor: {preprocessor_name} with options: {preprocessor_options}")
+                    entities = preprocessor(entities, source_layer, **preprocessor_options)
                     log_debug(f"After {preprocessor_name}: {len(entities)} entities")
                 else:
                     log_warning(f"Unknown preprocessor: {preprocessor_name}")
+            
+            # Apply entity type filter AFTER preprocessors (since they may change entity types)
+            if entity_types and preprocessors:
+                entities = [e for e in entities if e.dxftype() in entity_types]
+                log_debug(f"After entity type filter: {len(entities)} entities")
             
             # Convert entities to GeoDataFrame
             from src.dxf_utils import read_cad_layer_to_geodataframe

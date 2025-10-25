@@ -29,7 +29,11 @@ def get_entity_vertices(entity):
         # Convert vertices to consistent format (x, y) tuples
         result = []
         for v in vertices:
-            if hasattr(v, 'x') and hasattr(v, 'y'):
+            if hasattr(v, 'dxf') and hasattr(v.dxf, 'location'):
+                # DXFVertex object (from POLYLINE entities, especially virtual entities)
+                loc = v.dxf.location
+                result.append((float(loc.x), float(loc.y)))
+            elif hasattr(v, 'x') and hasattr(v, 'y'):
                 # Vertex object with .x and .y attributes
                 result.append((float(v.x), float(v.y)))
             elif isinstance(v, (list, tuple)) and len(v) >= 2:

@@ -1,12 +1,13 @@
 from src.utils import log_debug
 
-def extract_entity_basepoints(entities, layer_name):
+def extract_entity_basepoints(entities, layer_name, **kwargs):
     """
     Extracts basepoints from any DXF entity.
     
     Args:
         entities: List of DXF entities
         layer_name: Name of the layer to process
+        **kwargs: Additional options (currently unused, for future extensibility)
         
     Returns:
         list: List of dictionaries containing:

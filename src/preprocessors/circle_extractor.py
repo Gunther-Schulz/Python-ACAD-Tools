@@ -1,12 +1,13 @@
 from src.utils import log_info, log_warning, log_error, log_debug
 
-def extract_circle_centers(entities, layer_name):
+def extract_circle_centers(entities, layer_name, **kwargs):
     """
     Extracts circle centers from entities.
     
     Args:
         entities: List of entities or exploded block entities
         layer_name: Name of the layer to process
+        **kwargs: Additional options (currently unused, for future extensibility)
         
     Returns:
         list: List of dictionaries containing:
