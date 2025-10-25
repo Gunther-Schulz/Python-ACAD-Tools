@@ -138,7 +138,7 @@ legends:
           - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
             subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
             type: empty
-            blockSymbol: "GFL Symbol"
+            blockSymbol: "GFL2"
             blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
@@ -183,10 +183,10 @@ legends:
             type: empty
             blockSymbol: "PV Transformer"
             blockSymbolScale: 1.5
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           # - name: "Baum erhalten"
           #   type: empty
           #   blockSymbol: "Baum erhalten"
@@ -323,7 +323,7 @@ legends:
           - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
             subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
             type: empty
-            blockSymbol: "GFL Symbol"
+            blockSymbol: "GFL2"
             blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
@@ -355,10 +355,10 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
@@ -499,7 +499,7 @@ legends:
           - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
             subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
             type: empty
-            blockSymbol: "GFL Symbol"
+            blockSymbol: "GFL2"
             blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
@@ -531,10 +531,10 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
@@ -677,9 +677,8 @@ legends:
             blockSymbolScale: 2
           - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
             subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-            type: empty
-            blockSymbol: "GFL Symbol"
-            blockSymbolScale: 1.6
+            type: line
+            style: gfl1
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -710,10 +709,10 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
