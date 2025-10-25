@@ -59,6 +59,7 @@ class LayerProcessor:
         self.processed_layers = set()
         self.dxf_doc = None
         self.pending_dxf_layers = []
+        self._external_dxf_cache = {}  # Cache for external DXF documents
 
     def set_dxf_document(self, doc):
         """Set the DXF document from DXFExporter and process any pending layers"""
@@ -205,13 +206,85 @@ class LayerProcessor:
             import geopandas as gpd
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
+    def _load_dxf_source(self, layer_name, dxf_source_config):
+        """
+        Load geometry from an external DXF file.
+        
+        Args:
+            layer_name: Name of the layer to create
+            dxf_source_config: Dictionary with 'file', 'layer', and optional 'entityTypes'
+        """
+        import ezdxf
+        import geopandas as gpd
+        from src.utils import resolve_path
+        
+        try:
+            # Extract configuration
+            dxf_file = dxf_source_config.get('file')
+            source_layer = dxf_source_config.get('layer')
+            entity_types = dxf_source_config.get('entityTypes', None)
+            
+            if not dxf_file or not source_layer:
+                log_error(f"dxfSource for layer '{layer_name}' requires 'file' and 'layer' keys")
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+                return
+            
+            # Resolve path
+            full_path = resolve_path(dxf_file, self.project_loader.folder_prefix)
+            
+            # Check if file exists
+            if not os.path.exists(full_path):
+                log_error(f"DXF file not found for layer '{layer_name}': {full_path}")
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+                return
+            
+            log_debug(f"Loading layer '{source_layer}' from external DXF: {full_path}")
+            
+            # Check cache first
+            if full_path not in self._external_dxf_cache:
+                log_debug(f"Opening external DXF file: {full_path}")
+                doc = ezdxf.readfile(full_path)
+                self._external_dxf_cache[full_path] = doc
+            else:
+                log_debug(f"Using cached DXF document: {full_path}")
+                doc = self._external_dxf_cache[full_path]
+            
+            # Check if source layer exists in the DXF
+            if source_layer not in doc.layers:
+                log_warning(f"Layer '{source_layer}' not found in DXF file: {full_path}")
+                log_debug(f"Available layers: {[layer.dxf.name for layer in doc.layers]}")
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+                return
+            
+            # Read geometry from the external DXF layer
+            from src.dxf_utils import read_cad_layer_to_geodataframe
+            gdf = read_cad_layer_to_geodataframe(
+                doc,
+                source_layer,
+                self.crs,
+                entity_types=entity_types
+            )
+            
+            if gdf.empty:
+                log_warning(f"No geometry found in layer '{source_layer}' from {dxf_file}")
+            else:
+                log_info(f"Loaded {len(gdf)} geometries from external DXF layer '{source_layer}' into '{layer_name}'")
+            
+            self.all_layers[layer_name] = gdf
+            
+        except Exception as e:
+            log_error(f"Error loading DXF source for layer '{layer_name}': {str(e)}")
+            log_error(traceback.format_exc())
+            # Create empty GeoDataFrame as fallback
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+
     def _process_layer_operations(self, layer_obj, layer_name, processed_layers, processing_stack):
         """
         Process layer operations (extracted from original process_layer logic).
         Works for all sync modes.
         """
         # Check for unrecognized keys
-        recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'type', 'sourceLayer',
+        recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'dxfSource', 'type', 'sourceLayer',
                           'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
                           'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 
                           'saveToLagefaktor', 'entityTypes'}
@@ -239,6 +312,9 @@ class LayerProcessor:
         elif 'shapeFile' in layer_obj:
             if layer_name not in self.all_layers:
                 log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
+        elif 'dxfSource' in layer_obj:
+            if layer_name not in self.all_layers:
+                log_warning(f"DXF source for layer {layer_name} was not loaded properly")
         else:
             # Only set to None if not already set (e.g., by pull mode)
             if layer_name not in self.all_layers:
@@ -521,6 +597,11 @@ class LayerProcessor:
                 except Exception as e:
                     log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
                     log_error(traceback.format_exc())
+            
+            # Load from external DXF file if dxfSource is specified
+            elif 'dxfSource' in layer:
+                log_debug(f"Loading layer '{layer_name}' from external DXF source")
+                self._load_dxf_source(layer_name, layer['dxfSource'])
 
         # After loading all layers, log the contents of all_layers
         for layer_name, gdf in self.all_layers.items():
