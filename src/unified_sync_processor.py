@@ -186,16 +186,29 @@ class UnifiedSyncProcessor(ABC):
         """
         Process push mode entities with bulk layer replacement.
         This is the traditional behavior for generated content.
+        
+        Handle Preservation: If entities have existing handles in YAML,
+        those handles are preserved when recreating entities. This ensures
+        stable references when switching between push and auto modes.
         """
         if not configs:
             return {'entities': {}, 'yaml_updated': False}
 
         log_debug(f"Processing {len(configs)} push mode {self.entity_type} entities")
 
-        # Step 1: Bulk clean target layers (traditional approach)
+        # Step 1: Collect old handles BEFORE cleaning (for handle preservation)
+        old_handles = {}
+        for config in configs:
+            entity_name = config.get('name', 'unnamed')
+            sync_metadata = config.get('_sync', {})
+            if 'dxf_handle' in sync_metadata:
+                old_handles[entity_name] = sync_metadata['dxf_handle']
+                log_debug(f"Preserving handle {old_handles[entity_name]} for {self.entity_type} '{entity_name}'")
+
+        # Step 2: Bulk clean target layers (traditional approach)
         self._bulk_clean_target_layers(doc, configs)
 
-        # Step 2: Create all entities from YAML configs
+        # Step 3: Create all entities from YAML configs with handle preservation
         processed_entities = {}
         yaml_updated = False
 
@@ -205,16 +218,43 @@ class UnifiedSyncProcessor(ABC):
                 result = self._sync_push(doc, space, config)
 
                 if result:
+                    # HANDLE PRESERVATION: Reuse old handle if it existed
+                    if entity_name in old_handles:
+                        old_handle = old_handles[entity_name]
+                        new_handle = str(result.dxf.handle)
+                        
+                        if old_handle != new_handle:
+                            log_debug(f"Preserving handle for '{entity_name}': {new_handle} → {old_handle}")
+                            
+                            # Remove entity from database with auto-assigned handle
+                            try:
+                                del doc.entitydb[new_handle]
+                            except KeyError:
+                                pass
+                            
+                            # Set entity to use the old handle
+                            result.dxf.handle = old_handle
+                            
+                            # Re-add entity to database with preserved handle
+                            doc.entitydb[old_handle] = result
+                            
+                            log_debug(f"✓ Handle preserved for {self.entity_type} '{entity_name}': {old_handle}")
+                    
                     processed_entities[entity_name] = result
                     # Update sync metadata for push mode
                     content_hash = self._calculate_entity_hash(config)
-                    entity_handle = str(result.dxf.handle)
+                    entity_handle = str(result.dxf.handle)  # Use final handle (preserved or new)
                     update_sync_metadata(config, content_hash, 'yaml', entity_handle=entity_handle)
                     yaml_updated = True
 
             except Exception as e:
                 log_error(f"Error processing push mode {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
+                import traceback
+                log_debug(f"Traceback: {traceback.format_exc()}")
                 continue
+
+        if old_handles:
+            log_info(f"✓ Preserved {len(old_handles)} handles for {self.entity_type} entities in push mode")
 
         return {'entities': processed_entities, 'yaml_updated': yaml_updated}
 
