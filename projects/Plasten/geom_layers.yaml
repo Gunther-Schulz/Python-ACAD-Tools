@@ -902,12 +902,12 @@ geomLayers:
         layers:
           - Include AgriPV
       - type: dissolve
-      # Now subtract Biotope + 10m buffer to create holes in AgriPV
-      # This happens AFTER envelope constraint so holes are exactly Biotope + 10m
-      # Note: Biotope holes will be filled later at Geltungsbereich level
+      # Subtract biotope centers from AgriPV (but not the 10m buffer ring)
+      # The 10m buffer ring remains in AgriPV and becomes dead zone (excluded from Baugrenze)
+      # Biotope centers will be filled back in at Geltungsbereich level (removeInteriorRings)
       - type: difference
         layers:
-          - Biotope 10m Buffer
+          - Biotope
         reverseDifference: false
 
   # ==========================================================================
@@ -922,8 +922,7 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich NW Base
-      # Remove interior rings (holes) caused by Biotope exclusions
-      # Geltungsbereich should have a clean boundary without internal holes
+      # Remove interior rings (biotope center holes) - Geltungsbereich includes biotopes
       - type: removeInteriorRings
       # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
       - type: removeDegenerateSpikes
@@ -970,8 +969,7 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich NO Base
-      # Remove interior rings (holes) caused by Biotope exclusions
-      # Geltungsbereich should have a clean boundary without internal holes
+      # Remove interior rings (biotope center holes) - Geltungsbereich includes biotopes
       - type: removeInteriorRings
       # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
       - type: removeDegenerateSpikes
@@ -1021,8 +1019,7 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich S Base
-      # Remove interior rings (holes) caused by Biotope exclusions
-      # Geltungsbereich should have a clean boundary without internal holes
+      # Remove interior rings (biotope center holes) - Geltungsbereich includes biotopes
       - type: removeInteriorRings
       # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
       - type: removeDegenerateSpikes
@@ -1134,6 +1131,17 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
+
+  # Combined GFL buffer path (all utility buffers merged)
+  - name: All GFL Buffer Path
+    sync: push
+    style: gflPath
+    operations:
+      - type: merge
+        layers:
+          - FG Buffer Path
+          - Gastrasse Buffer Path
+      - type: dissolve
 
   # ==========================================================================
   # SECTION 7.5: FINAL WEGE OUTPUT
