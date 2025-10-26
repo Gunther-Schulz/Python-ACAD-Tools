@@ -416,7 +416,7 @@ geomLayers:
 
   # Ring only (10m buffer zone without biotope center) - for visualization
   - name: Biotope 10m Buffer Ring
-    sync: push
+    # sync: push
     operations:
       - type: buffer
         layers:
@@ -437,7 +437,7 @@ geomLayers:
           - Geltungsbereich S
 
   - name: Biotope 10m Buffer Ring Schraffur
-    sync: push
+    # sync: push
     style: grünfläche
     applyHatch:
       layers:
