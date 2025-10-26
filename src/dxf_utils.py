@@ -406,8 +406,8 @@ def remove_entities_by_layer(msp, layer_names, script_identifier, skip_entity_na
                             
                             if (entity_name in skip_entity_names or 
                                 entity_name_normalized in skip_entity_names_normalized):
-                                # SKIP this entity - it's protected
-                                log_debug(f"Protecting skip entity '{entity_name}' from bulk layer cleaning")
+                                # SKIP this entity - it's protected (could be skip/auto/pull mode)
+                                log_debug(f"Protecting entity '{entity_name}' from bulk layer cleaning")
                                 skipped_count += 1
                                 continue
                         
@@ -428,7 +428,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier, skip_entity_na
                     continue
     
     if skipped_count > 0:
-        log_info(f"Protected {skipped_count} skip entities from deletion")
+        log_info(f"Protected {skipped_count} entities from deletion")
 
     # Try to perform cleanup operations
     try:

@@ -357,17 +357,18 @@ class UnifiedSyncProcessor(ABC):
             layer_name = self._resolve_entity_layer(config)
             target_layers.add(layer_name)
 
-        # Get ALL configs (including skip) to protect skip entities on same layers
+        # Get ALL configs to protect non-push entities on same layers
+        # CRITICAL: Push mode should only delete/recreate ITS OWN entities, not auto/pull/skip entities!
         all_configs = self._get_entity_configs()
-        skip_entity_names = {config.get('name') for config in all_configs 
-                            if config.get('name') and self._get_sync_direction(config) == 'skip'}
+        protected_entity_names = {config.get('name') for config in all_configs 
+                                 if config.get('name') and self._get_sync_direction(config) in ['skip', 'auto', 'pull']}
 
-        # Clean layers using traditional approach, but protect skip entities
+        # Clean layers using traditional approach, but protect non-push entities
         for layer_name in target_layers:
             log_debug(f"Bulk cleaning {self.entity_type} entities from layer: {layer_name}")
-            if skip_entity_names:
-                log_debug(f"Protecting {len(skip_entity_names)} skip entities from bulk cleaning: {', '.join(skip_entity_names)}")
-            self._clean_layer_entities(doc, layer_name, skip_entity_names)
+            if protected_entity_names:
+                log_debug(f"Protecting {len(protected_entity_names)} non-push entities from bulk cleaning: {', '.join(list(protected_entity_names)[:5])}...")
+            self._clean_layer_entities(doc, layer_name, protected_entity_names)
 
     def _clean_layer_entities(self, doc, layer_name, skip_entity_names=None):
         """
