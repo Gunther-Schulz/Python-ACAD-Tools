@@ -399,6 +399,21 @@ geomLayers:
         quadSegs: 32
 
   # --------------------------------------------------------------------------
+  # Biotope Buffer: 10m clearance zone
+  # --------------------------------------------------------------------------
+
+  # 10m buffer: Creates clearance zone around biotope for AgriPV exclusion
+  - name: Biotope 10m Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Biotope
+        distance: 10
+        joinStyle: round
+        capStyle: round
+        quadSegs: 32
+
+  # --------------------------------------------------------------------------
   # Tree Line Buffer: 20m
   # --------------------------------------------------------------------------
 
@@ -525,8 +540,7 @@ geomLayers:
 
   # --------------------------------------------------------------------------
   # Hard Exclusions: Areas where AgriPV can NEVER be
-  # Includes Wald + 10m gap and Biotope
-  # Note: Biotope creates holes in AgriPV/Baugrenze, but these holes are filled in Geltungsbereich
+  # Includes Wald + 10m gap (Biotope handled separately in AgriPV Base)
   # Note: Moor is now a soft exclusion (allows AgriPV but not Baugrenze)
   # --------------------------------------------------------------------------
 
@@ -535,7 +549,6 @@ geomLayers:
       - type: copy
         layers:
           - Wald 10m Buffer
-          - Biotope
           # - Exclude Baufeld
           - Exclude Geltungsbereich
       - type: dissolve
@@ -544,6 +557,7 @@ geomLayers:
   # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
   # Note: Waldabstand NOT included - the 10m gap + 20m inset = 30m from forest already
   # Note: Moor added as soft exclusion (0m buffer - Baugrenze stops at edge)
+  # Note: Biotope 10m Buffer ensures Baugrenze maintains 10m clearance from biotope
   # --------------------------------------------------------------------------
 
   - name: Baugrenze Exclusions
@@ -557,6 +571,7 @@ geomLayers:
           - Einzelbaumlinie Buffer
           - Straßenflurstückskante Buffer
           - Moor
+          - Biotope 10m Buffer
       - type: dissolve
 
   # ==========================================================================
@@ -710,21 +725,21 @@ geomLayers:
           - Geltungsbereich NW Base
           - Geltungsbereich NO Base
           - Geltungsbereich S Base
-      # Remove hard exclusions (Wald+10m, Biotope, manual exclusions)
-      # Note: Biotope holes will be filled later at Geltungsbereich level
+      # Remove hard exclusions (Wald+10m, manual exclusions)
       - type: difference
         layers:
           - Hard Exclusions
         reverseDifference: false
-      # Buffer trick: -20m (round) then +20m (bevel) to shape AgriPV
-      # This ensures Baugrenze can reach all areas, while keeping geometric character
+      # Buffer trick: -20m (round) then +20m (round) to shape AgriPV
+      # This ensures Baugrenze can reach all areas
       - type: buffer
         distance: -20
         joinStyle: round
         quadSegs: 32
       - type: buffer
         distance: 20
-        joinStyle: bevel  # Bevel keeps it geometric with chamfered corners, not rounded
+        joinStyle: round  # Round for consistent treatment with biotope buffers
+        quadSegs: 32
       # Clean up small artifacts
       - type: filterGeometry
         minArea: 200
@@ -857,6 +872,13 @@ geomLayers:
         layers:
           - Include AgriPV
       - type: dissolve
+      # Now subtract Biotope + 10m buffer to create holes in AgriPV
+      # This happens AFTER envelope constraint so holes are exactly Biotope + 10m
+      # Note: Biotope holes will be filled later at Geltungsbereich level
+      - type: difference
+        layers:
+          - Biotope 10m Buffer
+        reverseDifference: false
 
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline + Wege
