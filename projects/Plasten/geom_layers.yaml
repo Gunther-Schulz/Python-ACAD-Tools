@@ -615,14 +615,15 @@ geomLayers:
         layers:
           - Geltungsbereich NO Base
 
-  - name: Wege Filtered S
-    operations:
-      - type: copy
-        layers:
-          - Wege Input
-      - type: filterByIntersection
-        layers:
-          - Geltungsbereich S Base
+  # South region does not include Wege
+  # - name: Wege Filtered S
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Wege Input
+  #     - type: filterByIntersection
+  #       layers:
+  #         - Geltungsbereich S Base
 
   # Combined Wege from all regions (for final output layer)
   - name: Wege Filtered
@@ -631,7 +632,7 @@ geomLayers:
         layers:
           - Wege Filtered NW
           - Wege Filtered NO
-          - Wege Filtered S
+          # - Wege Filtered S  # South excluded
 
   # ==========================================================================
   # SECTION 5: AGRIPV CALCULATION
@@ -901,7 +902,10 @@ geomLayers:
         removeEmptyGeometries: true
         removeFailures: true
 
-  - name: Geltungsbereich S Before Wege
+  # South region does not include Wege - no intermediate "Before Wege" layer needed
+  - name: Geltungsbereich S
+    sync: push
+    style: geltungsbereich
     operations:
       - type: copy
         layers:
@@ -925,25 +929,6 @@ geomLayers:
       - type: removeSliversErosion
         erosionDistance: 0.2
       # Stage 4: Final repair and cleanup
-      - type: repair
-        minArea: 20
-        removeEmptyGeometries: true
-        removeFailures: true
-
-  - name: Geltungsbereich S
-    sync: push
-    style: geltungsbereich
-    operations:
-      - type: merge
-        layers:
-          - Geltungsbereich S Before Wege
-          - Wege Filtered S
-      - type: dissolve
-      # Final cleanup after merging with Wege
-      - type: removeDegenerateSpikes
-        tolerance: 0.01
-        simplifyTolerance: 0.05
-        minSpikeLength: 0.1
       - type: repair
         minArea: 20
         removeEmptyGeometries: true
