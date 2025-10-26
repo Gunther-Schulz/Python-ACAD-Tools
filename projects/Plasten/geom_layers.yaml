@@ -399,11 +399,16 @@ geomLayers:
         quadSegs: 32
 
   # --------------------------------------------------------------------------
-  # Biotope Buffer: 10m clearance zone
+  # Biotope Buffers: 10m clearance (general rule) + 20m dead zone (stricter)
   # --------------------------------------------------------------------------
+  # Planning rules:
+  #   1. Biotope clearance: 10m buffer from biotope edges (general requirement)
+  #   2. Dead zone rule: 20m minimum from Geltungsbereich to Baugrenze
+  # Since 20m > 10m, we apply the 20m buffer to satisfy both requirements.
 
-  # 10m buffer: Creates clearance zone around biotope for AgriPV exclusion
-  # Full buffer (including biotope center) - used for calculations only
+  # 10m buffer: Documents the general biotope clearance requirement
+  # NOTE: Not used in calculations - kept for documentation only
+  # The 20m buffer below is actually applied (satisfies both 10m and 20m rules)
   - name: Biotope 10m Buffer
     operations:
       - type: buffer
@@ -414,34 +419,19 @@ geomLayers:
         capStyle: round
         quadSegs: 32
 
-  # Ring only (10m buffer zone without biotope center) - for visualization
-  - name: Biotope 10m Buffer Ring
-    # sync: push
+  # 20m buffer: Applied to Baugrenze Exclusions
+  # Satisfies both:
+  #   - 10m biotope clearance requirement (20m > 10m)
+  #   - 20m dead zone requirement (Geltungsbereich to Baugrenze distance)
+  - name: Biotope 20m Buffer
     operations:
       - type: buffer
         layers:
           - Biotope
-        distance: 10
+        distance: 20
         joinStyle: round
         capStyle: round
         quadSegs: 32
-      - type: difference
-        layers:
-          - Biotope
-        reverseDifference: false
-      # Only push buffer areas within Geltungsbereich
-      - type: intersection
-        layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
-
-  - name: Biotope 10m Buffer Ring Schraffur
-    # sync: push
-    style: grünfläche
-    applyHatch:
-      layers:
-        - Biotope 10m Buffer Ring
 
   # --------------------------------------------------------------------------
   # Tree Line Buffer: 20m
@@ -587,7 +577,9 @@ geomLayers:
   # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
   # Note: Waldabstand NOT included - the 10m gap + 20m inset = 30m from forest already
   # Note: Moor added as soft exclusion (0m buffer - Baugrenze stops at edge)
-  # Note: Biotope 10m Buffer ensures Baugrenze maintains 10m clearance from biotope
+  # Note: Biotope 20m Buffer ensures:
+  #       - 10m biotope clearance (planning requirement)
+  #       - 20m dead zone from Geltungsbereich to Baugrenze (stricter rule)
   # --------------------------------------------------------------------------
 
   - name: Baugrenze Exclusions
@@ -601,7 +593,7 @@ geomLayers:
           - Einzelbaumlinie Buffer
           - Straßenflurstückskante Buffer
           - Moor
-          - Biotope 10m Buffer
+          - Biotope 20m Buffer
       - type: dissolve
 
   # ==========================================================================

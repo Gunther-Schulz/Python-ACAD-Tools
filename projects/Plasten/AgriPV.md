@@ -5,7 +5,7 @@
 | Area/Feature Type                      | Buffer Distance | Excludes AgriPV | Excludes Baugrenze | Exclusion Type  | Dead Zone Created | AgriPV Behavior             |
 |----------------------------------------|-----------------|-----------------|--------------------|-----------------|--------------------|------------------------------|
 | **Wald (Forest)**                      | 30m             | ✓               | ✓                  | Full            | Yes (20m)          | Hard boundary with 10m gap   |
-| **Biotope**                            | Full area       | ✓               | ✓                  | Full            | No                 | Complete avoidance           |
+| **Biotope**                            | 20m             | ✓               | ✓                  | Hybrid          | Yes (20m)          | Center excluded, 20m buffer creates dead zone, interior filled in Geltungsbereich |
 | **Moor (Wetland)**                     | 0m              | ✗               | ✓                  | Baugrenze-only  | Yes (trims AgriPV) | Allows crossing, but trims AgriPV to maintain 20m rule |
 | **Einzelbaumlinie (Tree Line)**        | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
 | **Straßenflurstückskante (Road Edge)** | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
@@ -18,6 +18,7 @@
 ## Classification Legend
 
 - **Full**: Excludes both AgriPV and Baugrenze
+- **Hybrid**: Center excluded from AgriPV, buffer zone excluded from Baugrenze
 - **Baugrenze-only**: AgriPV allowed, only Baugrenze excluded
 - **Boundary**: Defines legal/regulatory scope, not an exclusion
 - **Dead Zone**: Area within AgriPV but outside Baugrenze
@@ -47,11 +48,12 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 
 **Hard Exclusions** (AgriPV cannot be here):
 - Wald + **10m buffer** (creates the 10m gap)
-- Biotopes
+- **Biotope centers** (not buffers - centers only)
 - Manual exclusions
 
 **Baugrenze Exclusions** (only affects Baugrenze, not AgriPV):
 - FG Buffer, Gas Buffer, Building Buffer, Moor
+- **Biotope 20m Buffer** (satisfies both 10m biotope clearance + 20m dead zone rules)
 - Note: Waldabstand, Roads, Trees NOT included - the 10m gap + 20m inset = 30m from forest, 20m from roads/trees already
 - Note: Moor has 0m buffer (Baugrenze stops at Moor edge), which can cause AgriPV to be trimmed back to maintain the 20m rule
 
@@ -107,13 +109,26 @@ Beyond the core zones, these features must be generated:
 - **Biotope Input** + **Geschütze Biotope** → merged into single **Biotope** layer
 - **Geschütze Biotope 2** = Geschütze Biotope + 0.5m buffer (separate styling layer, synced)
 
+**Dual-Rule Buffer Logic:**
+- **Planning Rule**: 10m clearance from biotope edges (general requirement)
+- **Dead Zone Rule**: 20m minimum from Geltungsbereich to Baugrenze
+- **Implementation**: 20m buffer applied to Baugrenze Exclusions (satisfies both rules, since 20m > 10m)
+
+**Exclusion Strategy:**
+1. **AgriPV**: Biotope centers excluded → creates holes in AgriPV
+2. **Baugrenze**: 20m buffer keeps Baugrenze 20m away from biotope edges
+3. **Geltungsbereich**: Interior biotope holes filled via `removeInteriorRings`
+
+**Result**: Interior biotopes included in Geltungsbereich but excluded from AgriPV/Baugrenze. The 20m ring around biotopes becomes dead zone (in AgriPV but not Baugrenze).
+
 ### Technical Buffer Specifications
 
 **Buffer Join Styles:**
 - **Wald 10m Buffer**: `joinStyle: round` (CRITICAL) - Mitre joins create shortcuts at acute angles, allowing AgriPV to get closer than 10m to forest edges at corners
+- **Biotope 10m/20m Buffers**: `joinStyle: round` with `quadSegs: 32` - Maintains consistent distance from biotope edges
 - **Exclusion buffers** (Waldabstand, FG, Gas, Gebäude, Roads, Trees): `joinStyle: round` with `quadSegs: 32` for smooth curves and consistent distances
 - **AgriPV -20m shaping**: `joinStyle: round` - Removes acute corners smoothly
-- **AgriPV +20m expansion**: `joinStyle: bevel` - Expands back with chamfered corners to preserve geometric character
+- **AgriPV +20m expansion**: `joinStyle: round` - Expands back with rounded corners (changed from bevel to match biotope buffer treatment)
 - **Baugrenze -20m inset**: `joinStyle: round` with `quadSegs: 32` - Maintains true perpendicular 20m distance at all corners, preventing shortcuts at sharp inward angles
 
 **Linetype Scales:**
