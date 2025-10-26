@@ -17,7 +17,6 @@ viewports:
   _sync:
     dxf_handle: 8AA93
     content_hash: eb3a309561f52635d6d6b322c22daf37b85733d981317138ae65d135bb93be9f
-    last_sync_time: 1759580744
     sync_source: dxf
   scale: 1.0
 - name: WorkView2
@@ -38,7 +37,6 @@ viewports:
   _sync:
     dxf_handle: 8AA94
     content_hash: 7b638fd3d8a0c5651d8e14a53704a80dbc9ee5457e7a16090173657ff913a8d0
-    last_sync_time: 1759580744
     sync_source: dxf
   scale: 1.0
 - name: MapViewportNW
@@ -64,7 +62,6 @@ viewports:
   _sync:
     dxf_handle: 8AA95
     content_hash: 18c92735732d4070c96a0eaff73ab7d7636d949e56c873d8b2e55b1632f8d140
-    last_sync_time: 1761319341
     sync_source: dxf
   center:
     x: 2011.0
@@ -85,7 +82,6 @@ viewports:
   _sync:
     dxf_handle: 8AA96
     content_hash: 27bd8b4ee1f497bdffbc9eab3085c773d473ba0adee512c849b32a54eaa4a27e
-    last_sync_time: 1761319754
     sync_source: dxf
   center:
     x: 2486.0
@@ -113,7 +109,6 @@ viewports:
   _sync:
     dxf_handle: 8AA97
     content_hash: df7aca974cdcef66f816ba6b3b68d4e30ff0413fa52b2b6c3bf35686e8cb0534
-    last_sync_time: 1761493170
     sync_source: dxf
   center:
     x: 2675.604323646093
@@ -272,7 +267,6 @@ viewports:
   _sync:
     dxf_handle: 8AA98
     content_hash: 34c678a20c902e43b681a3d7b8aea880c251868e18c7a1be9a39ba5277c1ab2f
-    last_sync_time: 1761319341
     sync_source: dxf
   center:
     x: 4011.0
@@ -293,7 +287,6 @@ viewports:
   _sync:
     dxf_handle: 8AA99
     content_hash: 20e6d44801efd18f0e6f75540d7d27b0db9432d6f38a59a8207d02d0032b8995
-    last_sync_time: 1761319754
     sync_source: dxf
   center:
     x: 4486.0
@@ -321,7 +314,6 @@ viewports:
   _sync:
     dxf_handle: 8AA9A
     content_hash: 56272c2f19e83e8b4ccd1a291d7fe9b864c9775f6db21303f80ec302e1eeb3c3
-    last_sync_time: 1761493170
     sync_source: dxf
   center:
     x: 4678.501021285454
@@ -479,7 +471,6 @@ viewports:
   _sync:
     dxf_handle: 8AA9B
     content_hash: 3d304b27640063e0ca644d457a29960485a3f47078213fa1487bbb4d752832a2
-    last_sync_time: 1761319341
     sync_source: dxf
   center:
     x: 6011.0
@@ -500,7 +491,6 @@ viewports:
   _sync:
     dxf_handle: 8AA9C
     content_hash: 94e809d3c487be18984f6ebf4052e5b5592a9690c2d816ae55ec6d8c79a058fe
-    last_sync_time: 1761319754
     sync_source: dxf
   center:
     x: 6483.860890165108
@@ -528,7 +518,6 @@ viewports:
   _sync:
     dxf_handle: 8AA9D
     content_hash: 4af47cc9c57c49da604665887f481a0d6b0e7439cda77351c2d2217eb136ea52
-    last_sync_time: 1761493170
     sync_source: dxf
   center:
     x: 6678.899529052275
@@ -667,4 +656,4 @@ viewports:
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
-sync: auto
+sync: skip

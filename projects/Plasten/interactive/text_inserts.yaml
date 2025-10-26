@@ -1,7 +1,6 @@
 texts:
 - name: Main Title NW
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan mit integriertem
 
@@ -16,11 +15,9 @@ texts:
   _sync:
     dxf_handle: 632E39
     content_hash: ddea531d70ace5a7eb7e28a44ea148fff4d7f9f2ed5a6a976c58f3bbdf1185ec
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Map Header NW
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Teil A: Planzeichnung i. M. 1:1500'
   position:
@@ -31,11 +28,9 @@ texts:
   _sync:
     dxf_handle: 632E3A
     content_hash: d876ec7b0c2bc975a52137bde780a9ba2ed5cd3372bdae39aff4b1c04332b8b8
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Übersichtslarte Header NW
   targetLayer: Plantext
-  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -46,11 +41,9 @@ texts:
   _sync:
     dxf_handle: 9DC9D
     content_hash: ad7e1dd056f8b4a69dcfc4ac57f7ecd9917a32a4e3b3a00d15cb174b8a9c8d8a
-    last_sync_time: 1759587152
     sync_source: yaml
 - name: Satzungs NW
   targetLayer: Plantext
-  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
@@ -72,11 +65,9 @@ texts:
   _sync:
     dxf_handle: 632E3B
     content_hash: f0d12b90cad634c8b35c14cbaa0af33abfd3e998f94c13d10f23b8283cc855c7
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Main Title NO
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan mit integriertem
 
@@ -91,11 +82,9 @@ texts:
   _sync:
     dxf_handle: 632E3C
     content_hash: 307d2fc8f60c4d6ea6ebfe5e113654e10a721a50a6336d2447344f1749726ede
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Map Header NO
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Teil A: Planzeichnung i. M. 1:1500'
   position:
@@ -106,11 +95,9 @@ texts:
   _sync:
     dxf_handle: 632E3D
     content_hash: d5aa9d5e20db1a615aa50e9494057358d0a05c7d75040d40ca6f84a29478a040
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Übersichtslarte Header NO
   targetLayer: Plantext
-  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -121,11 +108,9 @@ texts:
   _sync:
     dxf_handle: 9EEF8
     content_hash: ba6c9d2d02a1bfd62836489c9801e843a4a94fe4fadf018a38a4870cf1593c48
-    last_sync_time: 1759587293
     sync_source: yaml
 - name: Satzungs NO
   targetLayer: Plantext
-  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
@@ -147,11 +132,9 @@ texts:
   _sync:
     dxf_handle: 632E3E
     content_hash: 2852b8a857ffc1fe8a4073f19a213134f2599a35b3145be77fda0a0c9cd952b4
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Main Title S
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan mit integriertem
 
@@ -166,11 +149,9 @@ texts:
   _sync:
     dxf_handle: 632E3F
     content_hash: 161d473ebb793ed61d62c28e853f25485c2b77b4b2d9133c11300c4fe4f3fa0f
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Map Header S
   targetLayer: Plantext
-  sync: push
   paperspace: true
   text: 'Teil A: Planzeichnung i. M. 1:1500'
   position:
@@ -181,11 +162,9 @@ texts:
   _sync:
     dxf_handle: 632E40
     content_hash: 6843010824e1b3c72ad72c3ac9d3878e775ec695c10c0788f4e0d932daad88d5
-    last_sync_time: 1761493152
     sync_source: yaml
 - name: Übersichtslarte Header S
   targetLayer: Plantext
-  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -196,11 +175,9 @@ texts:
   _sync:
     dxf_handle: 9EEFB
     content_hash: c7681719cfe584997d97b287569acddc864258a66773c5ba834b7e85839fc13a
-    last_sync_time: 1759587293
     sync_source: yaml
 - name: Satzungs S
   targetLayer: Plantext
-  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
@@ -222,7 +199,6 @@ texts:
   _sync:
     dxf_handle: 632E41
     content_hash: d181cc4930f054bb719bb261e479b418b368a4c7127c52f7b5b8172fe765a2c2
-    last_sync_time: 1761493152
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
