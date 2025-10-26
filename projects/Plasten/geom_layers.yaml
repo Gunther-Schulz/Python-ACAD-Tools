@@ -403,6 +403,7 @@ geomLayers:
   # --------------------------------------------------------------------------
 
   # 10m buffer: Creates clearance zone around biotope for AgriPV exclusion
+  # Full buffer (including biotope center) - used for calculations only
   - name: Biotope 10m Buffer
     operations:
       - type: buffer
@@ -412,6 +413,29 @@ geomLayers:
         joinStyle: round
         capStyle: round
         quadSegs: 32
+
+  # Ring only (10m buffer zone without biotope center) - for visualization
+  - name: Biotope 10m Buffer Ring
+    sync: push
+    operations:
+      - type: buffer
+        layers:
+          - Biotope
+        distance: 10
+        joinStyle: round
+        capStyle: round
+        quadSegs: 32
+      - type: difference
+        layers:
+          - Biotope
+        reverseDifference: false
+
+  - name: Biotope 10m Buffer Ring Schraffur
+    sync: push
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Biotope 10m Buffer Ring
 
   # --------------------------------------------------------------------------
   # Tree Line Buffer: 20m
