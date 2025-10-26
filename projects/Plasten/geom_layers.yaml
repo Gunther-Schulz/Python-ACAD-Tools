@@ -951,6 +951,11 @@ geomLayers:
           - Geltungsbereich NW Before Wege
           - Wege Filtered NW
       - type: dissolve
+      # Subtract manual exclusions after merging with Wege
+      - type: difference
+        layers:
+          - Exclude Geltungsbereich
+        reverseDifference: false
       # Final cleanup after merging with Wege
       - type: removeDegenerateSpikes
         tolerance: 0.01
@@ -998,6 +1003,11 @@ geomLayers:
           - Geltungsbereich NO Before Wege
           - Wege Filtered NO
       - type: dissolve
+      # Subtract manual exclusions after merging with Wege
+      - type: difference
+        layers:
+          - Exclude Geltungsbereich
+        reverseDifference: false
       # Final cleanup after merging with Wege
       - type: removeDegenerateSpikes
         tolerance: 0.01
