@@ -47,7 +47,6 @@ def get_sync_metadata(entity_config):
     sync_meta = entity_config.get('_sync', {})
     return {
         'content_hash': sync_meta.get('content_hash'),
-        'last_sync_time': sync_meta.get('last_sync_time'),
         'sync_source': sync_meta.get('sync_source'),
         'conflict_policy': sync_meta.get('conflict_policy')
     }
@@ -64,8 +63,6 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
         conflict_policy: Optional conflict resolution policy
         entity_handle: Optional entity handle for identity tracking (stored as dxf_handle)
     """
-    import time
-
     if not entity_config:
         from src.utils import log_warning
         log_warning("entity_config is None in update_sync_metadata")
@@ -75,7 +72,6 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
         entity_config['_sync'] = {}
 
     entity_config['_sync']['content_hash'] = content_hash
-    entity_config['_sync']['last_sync_time'] = int(time.time())
     entity_config['_sync']['sync_source'] = sync_source
 
     if entity_handle:
@@ -461,13 +457,6 @@ def validate_and_repair_sync_metadata(entity_config, entity_type, dxf_entity=Non
             log_warning(f"Could not cross-validate entity '{entity_name}': {str(e)}")
             validation_result['warnings'].append('cross_validation_failed')
 
-    # Validate timestamp
-    sync_time = sync_meta.get('last_sync_time')
-    if sync_time and (not isinstance(sync_time, int) or sync_time < 0):
-        log_warning(f"Invalid sync timestamp for entity '{entity_name}', resetting...")
-        entity_config['_sync']['last_sync_time'] = int(time.time())
-        validation_result['repairs_made'].append('fixed_invalid_timestamp')
-
     return validation_result
 
 
@@ -538,9 +527,6 @@ def clean_entity_config_for_yaml_output(entity_config):
         sync_meta = {k: v for k, v in sync_meta.items() if v is not None}
 
         # Ensure proper data types
-        if 'last_sync_time' in sync_meta and sync_meta['last_sync_time'] is not None:
-            sync_meta['last_sync_time'] = int(sync_meta['last_sync_time'])
-
         if 'content_hash' in sync_meta and sync_meta['content_hash'] is not None:
             sync_meta['content_hash'] = str(sync_meta['content_hash'])
 
