@@ -429,6 +429,12 @@ geomLayers:
         layers:
           - Biotope
         reverseDifference: false
+      # Only push buffer areas within Geltungsbereich
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
 
   - name: Biotope 10m Buffer Ring Schraffur
     sync: push
@@ -1187,6 +1193,27 @@ geomLayers:
     applyHatch:
       layers:
         - Gebäude
+
+  - name: Geltungsbereich NW Schraffur
+    sync: push
+    style: geltungsbereichHatch
+    applyHatch:
+      layers:
+        - Geltungsbereich NW
+
+  - name: Geltungsbereich NO Schraffur
+    sync: push
+    style: geltungsbereichHatch
+    applyHatch:
+      layers:
+        - Geltungsbereich NO
+
+  - name: Geltungsbereich S Schraffur
+    sync: push
+    style: geltungsbereichHatch
+    applyHatch:
+      layers:
+        - Geltungsbereich S
 
   # ==========================================================================
   # SECTION 9: INFRASTRUCTURE LAYERS

@@ -323,6 +323,7 @@ styles:
   geltungsbereich:
     layer:
       color: "red"
+      lineweight: 50
       plot: false
     entity:
       linetypeGeneration: true
@@ -337,6 +338,15 @@ styles:
     entity:
       linetypeGeneration: true
       # linetypeScale: 30
+
+  geltungsbereichHatch:
+    hatch:
+      pattern: "ANSI31"
+      scale: 10
+      angle: 180
+      color: "red"
+      lineweight: 50
+      individual_hatches: false
 
   pvModules:
     layer:
