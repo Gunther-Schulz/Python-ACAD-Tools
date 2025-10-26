@@ -59,9 +59,9 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 
 **AgriPV Base Calculation:**
 ```
-AgriPV Base = (Parcels - Hard Exclusions) → -20m round → +20m bevel
+AgriPV Base = (Parcels - Hard Exclusions) → -20m round → +20m round
 ```
-The -20m/+20m buffer trick shapes AgriPV Base to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m bevel expands back with chamfered (not rounded) corners. This eliminates geometric dead zones while preserving angular character.
+The -20m/+20m buffer trick shapes AgriPV Base to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m round expands back with consistent rounded treatment (matching biotope buffer handling). This eliminates geometric dead zones while maintaining uniform buffer behavior.
 
 **Baugrenze Calculation:**
 ```
@@ -117,9 +117,9 @@ Beyond the core zones, these features must be generated:
 **Exclusion Strategy:**
 1. **AgriPV**: Biotope centers excluded → creates holes in AgriPV
 2. **Baugrenze**: 20m buffer keeps Baugrenze 20m away from biotope edges
-3. **Geltungsbereich**: Interior biotope holes filled via `removeInteriorRings`
+3. **Geltungsbereich**: Interior biotope holes filled via `removeInteriorRings` (only completely interior holes - edge-touching biotopes remain excluded)
 
-**Result**: Interior biotopes included in Geltungsbereich but excluded from AgriPV/Baugrenze. The 20m ring around biotopes becomes dead zone (in AgriPV but not Baugrenze).
+**Result**: Completely interior biotopes included in Geltungsbereich but excluded from AgriPV/Baugrenze. The 20m ring around biotopes becomes dead zone (in AgriPV but not Baugrenze). Edge-touching biotopes remain fully excluded.
 
 ### Technical Buffer Specifications
 
