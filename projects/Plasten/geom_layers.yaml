@@ -221,8 +221,8 @@ geomLayers:
   # - name: Exclude Baufeld
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baufeld.shp"
 
-  # - name: Exclude Baugrenze
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
+  - name: Exclude Baugrenze
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
 
   - name: Exclude Geltungsbereich
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Geltungsbereich.shp"
@@ -727,13 +727,14 @@ geomLayers:
         layers:
           - AgriPV Base
         distance: -20
-        joinStyle: round  # Round maintains true 20m distance at all corners
+        joinStyle: mitre
+        mitreLimit: 1.0  # Sharp corners where possible, bevels to maintain ≥20m minimum
         quadSegs: 32
       # Subtract ALL Baugrenze exclusion zones (utilities, roads, trees, buildings, Moor)
       - type: difference
         layers:
           - Baugrenze Exclusions
-          # - Exclude Baugrenze
+          - Exclude Baugrenze
         reverseDifference: false
 
   - name: Baugrenze 2
@@ -758,7 +759,8 @@ geomLayers:
         layers:
           - Baugrenze
         distance: 20
-        joinStyle: mitre  # Sharp corners to maintain AgriPV's geometric character
+        joinStyle: mitre
+        mitreLimit: 2.7  # Allows mitre extension up to 30m (1.5 × 20m)
 
   # Final AgriPV: Constrained to be within 20m of Baugrenze
   # Note: Include AgriPV areas are merged in to override the 20m rule

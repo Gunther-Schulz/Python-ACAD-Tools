@@ -13,11 +13,12 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     buffer_distance = operation.get('distance', 0)
     buffer_field = operation.get('distanceField', None)
     buffer_mode = operation.get('mode', 'normal')
-    join_style = operation.get('joinStyle', 'round')
+    join_style = operation.get('joinStyle', 'mitre')
     cap_style = operation.get('capStyle', 'square')
     start_cap_style = operation.get('startCapStyle', cap_style)
     end_cap_style = operation.get('endCapStyle', cap_style)
     quad_segs = operation.get('quadSegs', 16)  # Default to 16 for smoother curves (QGIS default)
+    mitre_limit = operation.get('mitreLimit', 2.0)  # Default mitre limit - balances geometry with practical limits
 
     join_style_map = {
         'round': 1,
@@ -34,7 +35,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     join_style_value = join_style_map.get(join_style, 2)
     start_cap_value = cap_style_map.get(start_cap_style, 2)
     end_cap_value = cap_style_map.get(end_cap_style, 2)
-    log_debug(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
+    log_debug(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}, Mitre limit: {mitre_limit}")
 
     source_layers = operation.get('layers', [layer_name])
 
@@ -145,16 +146,16 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                         ring_width = abs(distance)  # Use absolute value for consistent width
                         if distance >= 0:
                             # Positive buffer: outer ring
-                            outer_buffer = geom.buffer(ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
-                            inner_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)  # Use 0 instead of 0.001
+                            outer_buffer = geom.buffer(ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)
+                            inner_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)  # Use 0 instead of 0.001
                             return outer_buffer.difference(inner_buffer)
                         else:
                             # Negative buffer: inner ring
-                            outer_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)  # Use original boundary
-                            inner_buffer = geom.buffer(-ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
+                            outer_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)  # Use original boundary
+                            inner_buffer = geom.buffer(-ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)
                             return outer_buffer.difference(inner_buffer)
                 # Regular buffer for other cases
-                return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
+                return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)
 
         if isinstance(geom, MultiLineString):
             # Handle each line separately
@@ -165,15 +166,15 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         # For single LineString
         if start_cap == end_cap:
             # If caps are the same, use regular buffer
-            return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
+            return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)
 
         # Get start and end points
         start_point = Point(geom.coords[0])
         end_point = Point(geom.coords[-1])
 
         # Create buffers with different caps
-        buffer1 = geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
-        buffer2 = geom.buffer(distance, quad_segs=quad_segs, cap_style=end_cap, join_style=join_style)
+        buffer1 = geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style, mitre_limit=mitre_limit)
+        buffer2 = geom.buffer(distance, quad_segs=quad_segs, cap_style=end_cap, join_style=join_style, mitre_limit=mitre_limit)
 
         # Create small circles around start and end points
         start_circle = start_point.buffer(distance * 1.5, quad_segs=quad_segs)
