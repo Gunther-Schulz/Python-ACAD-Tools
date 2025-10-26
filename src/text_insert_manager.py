@@ -166,25 +166,24 @@ class TextInsertManager(UnifiedSyncProcessor):
         sync_metadata = config.get('_sync', {})
         stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
 
-        # STEP 1: Try handle-first search in all spaces
+        # STEP 1: Try handle-first search using document entity database
         if stored_handle:
-            # Search modelspace first, then all paperspace layouts
-            spaces_to_search = [doc.modelspace()]
-            spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
-            
-            for space in spaces_to_search:
-                try:
-                    entity = space.get_entity_by_handle(stored_handle)
-                    if entity:
-                        log_debug(f"Found text '{entity_name}' by handle {stored_handle} in {space.name}")
+            try:
+                # Use doc.entitydb to get entity by handle (works for all spaces/layouts)
+                entity = doc.entitydb.get(stored_handle)
+                if entity:
+                    # Verify it's a text entity
+                    if entity.dxftype() in ['TEXT', 'MTEXT']:
+                        log_debug(f"Found text '{entity_name}' by handle {stored_handle}")
 
                         # Update entity name in XDATA if it changed
                         self._update_entity_name_in_xdata(entity, entity_name)
 
                         return entity
-                except Exception as e:
-                    log_debug(f"Handle search failed in {space.name} for '{entity_name}' (handle: {stored_handle}): {str(e)}")
-                    continue
+                    else:
+                        log_debug(f"Handle {stored_handle} exists but is not a text entity (type: {entity.dxftype()})")
+            except Exception as e:
+                log_debug(f"Handle search failed for '{entity_name}' (handle: {stored_handle}): {str(e)}")
 
         # STEP 2: Fallback to name-based search
         log_debug(f"Falling back to name search for text '{entity_name}'")
@@ -250,9 +249,10 @@ class TextInsertManager(UnifiedSyncProcessor):
                 layer_name = self._resolve_entity_layer(config)
                 target_layers.add(layer_name)
 
-        # Text entities can be in both spaces - clean both with modelspace priority
+        # Text entities can be in modelspace or any paperspace layout
         for layer_name in target_layers:
-            spaces = [doc.modelspace(), doc.paperspace()]
+            spaces = [doc.modelspace()]
+            spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
             for space in spaces:
                 log_debug(f"Cleaning text entities from layer: {layer_name} in {space}")
                 remove_entities_by_layer(space, layer_name, self.script_identifier)
@@ -481,8 +481,9 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""
-        # Search modelspace first (where most text entities are), then paperspace
-        spaces = [doc.modelspace(), doc.paperspace()]
+        # Search modelspace first, then ALL layouts (paperspace entities are in layouts!)
+        spaces = [doc.modelspace()]
+        spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
         for space in spaces:
             entity = find_entity_by_xdata_name(space, name, ['TEXT', 'MTEXT'])
@@ -524,8 +525,11 @@ class TextInsertManager(UnifiedSyncProcessor):
         return ['TEXT', 'MTEXT']
 
     def _get_discovery_spaces(self, doc):
-        """Text entities can be in both spaces - prioritize modelspace for efficiency since most text is in modelspace."""
-        return [doc.modelspace(), doc.paperspace()]
+        """Text entities can be in modelspace or any paperspace layout."""
+        # Search modelspace first, then all layouts
+        spaces = [doc.modelspace()]
+        spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
+        return spaces
 
     def _generate_entity_name(self, entity, counter):
         """Generate name based on text content or handle."""

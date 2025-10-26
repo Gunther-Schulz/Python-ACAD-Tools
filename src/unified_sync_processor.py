@@ -383,8 +383,10 @@ class UnifiedSyncProcessor(ABC):
         if skip_entity_names is None:
             skip_entity_names = set()
         
-        # Default: clean from both model and paper space
-        spaces = [doc.modelspace(), doc.paperspace()]
+        # CRITICAL: Clean from modelspace AND all paperspace layouts
+        spaces = [doc.modelspace()]
+        spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
+        
         for space in spaces:
             from src.dxf_utils import remove_entities_by_layer
             remove_entities_by_layer(space, layer_name, self.script_identifier, skip_entity_names)
@@ -1134,7 +1136,8 @@ class UnifiedSyncProcessor(ABC):
             try:
                 from src.dxf_utils import detect_entity_paperspace
                 entity_handle = config['_sync']['dxf_handle']
-                entity = target_space.get_entity_by_handle(entity_handle)
+                # Use doc.entitydb to get entity (works for all spaces/layouts)
+                entity = doc.entitydb.get(entity_handle)
 
                 if entity:
                     actual_paperspace = detect_entity_paperspace(entity)
@@ -1462,34 +1465,40 @@ class UnifiedSyncProcessor(ABC):
         try:
             from src.dxf_utils import is_created_by_script, _extract_sync_mode_from_xdata
 
-            for entity in space:
-                if is_created_by_script(entity, self.script_identifier):
-                    entity_name = self._get_entity_name_from_xdata(entity)
-                    entity_sync_mode = _extract_sync_mode_from_xdata(entity)
+            # CRITICAL: Search ALL spaces (modelspace + all layouts), not just the passed space
+            # The space parameter is kept for backward compatibility but we search everywhere
+            spaces_to_search = [doc.modelspace()]
+            spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
+            
+            for search_space in spaces_to_search:
+                for entity in search_space:
+                    if is_created_by_script(entity, self.script_identifier):
+                        entity_name = self._get_entity_name_from_xdata(entity)
+                        entity_sync_mode = _extract_sync_mode_from_xdata(entity)
 
-                    # Normalize entity name for matching
-                    entity_name_normalized = entity_name.lower().strip() if entity_name else None
-                    
-                    # CRITICAL: Check if entity is marked as 'skip' in YAML
-                    # Skip entities should NEVER be considered orphaned, regardless of XDATA sync_mode
-                    is_skip_in_yaml = (entity_name in skip_entity_names or 
-                                      entity_name_normalized in skip_entity_names_normalized)
-                    
-                    # Check if entity is still in current configs
-                    is_in_current_configs = (entity_name in current_names or 
-                                            entity_name_normalized in current_names_normalized)
-                    
-                    # Only consider entity orphaned if:
-                    # 1. XDATA says it's auto/push mode (YAML was source of truth)
-                    # 2. Entity name exists
-                    # 3. NOT in current YAML configs (was removed from YAML)
-                    # 4. NOT marked as 'skip' in YAML (skip entities are intentionally left alone)
-                    if (entity_sync_mode in ['auto', 'push'] and
-                        entity_name and
-                        not is_in_current_configs and
-                        not is_skip_in_yaml):
-                        orphaned_entities.append((entity, entity_name))
-                        log_debug(f"Found orphaned {self.entity_type} entity: '{entity_name}' (XDATA sync_mode: {entity_sync_mode})")
+                        # Normalize entity name for matching
+                        entity_name_normalized = entity_name.lower().strip() if entity_name else None
+                        
+                        # CRITICAL: Check if entity is marked as 'skip' in YAML
+                        # Skip entities should NEVER be considered orphaned, regardless of XDATA sync_mode
+                        is_skip_in_yaml = (entity_name in skip_entity_names or 
+                                          entity_name_normalized in skip_entity_names_normalized)
+                        
+                        # Check if entity is still in current configs
+                        is_in_current_configs = (entity_name in current_names or 
+                                                entity_name_normalized in current_names_normalized)
+                        
+                        # Only consider entity orphaned if:
+                        # 1. XDATA says it's auto/push mode (YAML was source of truth)
+                        # 2. Entity name exists
+                        # 3. NOT in current YAML configs (was removed from YAML)
+                        # 4. NOT marked as 'skip' in YAML (skip entities are intentionally left alone)
+                        if (entity_sync_mode in ['auto', 'push'] and
+                            entity_name and
+                            not is_in_current_configs and
+                            not is_skip_in_yaml):
+                            orphaned_entities.append((entity, entity_name))
+                            log_debug(f"Found orphaned {self.entity_type} entity: '{entity_name}' (XDATA sync_mode: {entity_sync_mode})")
 
         except Exception as e:
             log_warning(f"Error scanning for orphaned {self.entity_type} entities: {str(e)}")

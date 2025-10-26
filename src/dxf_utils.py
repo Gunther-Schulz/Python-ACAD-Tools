@@ -1618,7 +1618,9 @@ def clean_layer_by_sync_mode(doc, layer_name, script_identifier, sync_mode, spac
         int: Total number of entities removed
     """
     if spaces is None:
-        spaces = [doc.modelspace(), doc.paperspace()]
+        # Default to all spaces (modelspace + all layouts)
+        spaces = [doc.modelspace()]
+        spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
     total_removed = 0
 
@@ -1630,12 +1632,12 @@ def clean_layer_by_sync_mode(doc, layer_name, script_identifier, sync_mode, spac
     return total_removed
 
 
-def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
+def remove_specific_entity_by_handle(doc, entity_handle, script_identifier):
     """
     Remove a specific entity by its handle (for selective auto sync updates).
 
     Args:
-        space: DXF space
+        doc: DXF document
         entity_handle: Handle of entity to remove
         script_identifier: Script identifier to verify ownership
 
@@ -1643,7 +1645,8 @@ def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
         bool: True if entity was removed, False otherwise
     """
     try:
-        entity = space.get_entity_by_handle(entity_handle)
+        # Use doc.entitydb to get entity (works for all spaces/layouts)
+        entity = doc.entitydb.get(entity_handle)
 
         if entity and is_created_by_script(entity, script_identifier):
             # Clear XDATA before deletion
@@ -1652,10 +1655,12 @@ def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
             except:
                 pass
 
-            # Delete the entity
-            space.delete_entity(entity)
-            log_debug(f"Removed specific entity with handle: {entity_handle}")
-            return True
+            # Get the space this entity belongs to
+            entity_space = _get_entity_space(entity)
+            if entity_space:
+                entity_space.delete_entity(entity)
+                log_debug(f"Removed specific entity with handle: {entity_handle}")
+                return True
 
     except Exception as e:
         log_debug(f"Could not remove entity with handle {entity_handle}: {str(e)}")

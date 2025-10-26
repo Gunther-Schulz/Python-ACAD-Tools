@@ -148,8 +148,9 @@ class BlockInsertManager(UnifiedSyncProcessor):
         try:
             log_debug(f"🔍 DEBUG: Searching for block '{entity_name}' with script ID '{self.script_identifier}'")
 
-            # Search modelspace first (where most block inserts like equipment symbols are), then paperspace
-            spaces = [doc.modelspace(), doc.paperspace()]
+            # Search modelspace first, then ALL layouts (paperspace entities are in layouts!)
+            spaces = [doc.modelspace()]
+            spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
             for space in spaces:
                 log_debug(f"🔍 DEBUG: Searching in {space}")
@@ -180,8 +181,9 @@ class BlockInsertManager(UnifiedSyncProcessor):
         try:
             log_debug(f"🔍 RECOVERY: Searching for block '{entity_name}' without handle validation")
 
-            # Search modelspace first (where most block inserts like equipment symbols are), then paperspace
-            spaces = [doc.modelspace(), doc.paperspace()]
+            # Search modelspace first, then ALL layouts (paperspace entities are in layouts!)
+            spaces = [doc.modelspace()]
+            spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
             for space in spaces:
                 # Try to find the specific entity
@@ -220,23 +222,24 @@ class BlockInsertManager(UnifiedSyncProcessor):
         sync_metadata = config.get('_sync', {})
         stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
 
-        # STEP 1: Try handle-first search in both spaces (block-specific behavior)
+        # STEP 1: Try handle-first search using document entity database
         if stored_handle:
-            # Prioritize modelspace first since most block inserts are design elements in modelspace
-            spaces = [doc.modelspace(), doc.paperspace()]
-            for space in spaces:
-                try:
-                    entity = space.get_entity_by_handle(stored_handle)
-                    if entity:
-                        log_debug(f"Found block '{entity_name}' by handle {stored_handle} in {space}")
+            try:
+                # Use doc.entitydb to get entity by handle (works for all spaces/layouts)
+                entity = doc.entitydb.get(stored_handle)
+                if entity:
+                    # Verify it's a block insert
+                    if entity.dxftype() == 'INSERT':
+                        log_debug(f"Found block '{entity_name}' by handle {stored_handle}")
 
                         # Update entity name in XDATA if it changed
                         self._update_entity_name_in_xdata(entity, entity_name)
 
                         return entity
-                except Exception as e:
-                    log_debug(f"Handle search failed in {space} for '{entity_name}' (handle: {stored_handle}): {str(e)}")
-                    continue
+                    else:
+                        log_debug(f"Handle {stored_handle} exists but is not a block insert (type: {entity.dxftype()})")
+            except Exception as e:
+                log_debug(f"Handle search failed for '{entity_name}' (handle: {stored_handle}): {str(e)}")
 
         # STEP 2: Fallback to name-based search using existing method
         log_debug(f"Falling back to name search for block '{entity_name}'")
@@ -413,9 +416,11 @@ class BlockInsertManager(UnifiedSyncProcessor):
         return ['INSERT']
 
     def _get_discovery_spaces(self, doc):
-        """Block entities can be in both spaces - prioritize modelspace for efficiency since most blocks are in modelspace."""
-        # Prioritize modelspace first since most block inserts (equipment symbols, etc.) are in modelspace
-        return [doc.modelspace(), doc.paperspace()]
+        """Block entities can be in modelspace or any paperspace layout."""
+        # Search modelspace first, then all layouts
+        spaces = [doc.modelspace()]
+        spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
+        return spaces
 
     def _generate_entity_name(self, entity, counter):
         """Generate name based on block name and counter."""
