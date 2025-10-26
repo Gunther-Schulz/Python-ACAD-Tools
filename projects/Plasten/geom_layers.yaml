@@ -292,16 +292,27 @@ geomLayers:
         - POLYLINE
 
   # Combined PV Modules layer
+  # TEMPORARY: Using sync:pull to retrieve manually corrected geometry from AutoCAD
+  # The upstream DXF sources had modules extending beyond Baugrenze, which were manually
+  # corrected in AutoCAD. Once we receive corrected upstream data, restore the merge
+  # operations from the three source files and change back to sync:push.
+  # TODO: Restore original operations once upstream DXF files are updated:
+  #   - Uncomment merge operations below
+  #   - Remove sync:pull and restore sync:push
+  #   - Remove Baugrenze intersection
   - name: PV Modules
-    sync: push
+    sync: pull
     style: pvModules
-    operations:
-      - type: merge
-        layers:
-          - PV Modules I Source
-          - PV Modules II Source
-          - PV Modules Süd Source
-      - type: dissolve
+    # operations:
+    #   - type: merge
+    #     layers:
+    #       - PV Modules I Source
+    #       - PV Modules II Source
+    #       - PV Modules Süd Source
+    #   - type: dissolve
+    #   - type: intersection
+    #     layers:
+    #       - Baugrenze
 
   - name: PV Modules Schraffur
     sync: push

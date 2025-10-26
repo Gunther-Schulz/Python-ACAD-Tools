@@ -112,22 +112,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: aea90716b6e836d6a735e6e80e94806b45595871d718cde70b18397e784453a2
-    last_sync_time: 1761480473
-    sync_source: dxf
+    content_hash: e1b03ec9b8be9d71c9c8eb6e0c0162c34ec6229ebc3f8940709a782fa5bf98ea
+    last_sync_time: 1761488864
+    sync_source: yaml
   center:
     x: 2867.888555200216
     y: 302.7121692818036
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - Wege Schraffur
   - Defpoints
   - 0-BLOCKS
   - Gebäude
@@ -139,16 +130,34 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - RAHMEN
-  - FG Buffer Path
-  - Gastrasse Buffer Path
-  - FG Buffer Path Array
-  - Gastrasse Buffer Path Array
-  - Mittelspannungsleitung
-  - Mittelspannungsleitung Buffer Path
-  - Mittelspannungsleitung Array
-  - Mittelspannungsleitung Buffer Path Array
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
   - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - RAHMEN
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -200,35 +209,26 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
+  - Grünfläche
+  - Wege Schraffur
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - Lagerfläche
   - Lagerfläche Schraffur
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - PV Transformer
-  - 05 Löschwasserkissen
-  - Bäume
-  - 02 Sondergebiet
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Grünfläche
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - Mittelspannungsleitung
+  - Mittelspannungsleitung Buffer Path
+  - Mittelspannungsleitung Array
+  - Mittelspannungsleitung Buffer Path Array
   - Flur
   - Gemarkung
   - Gemeinde
@@ -320,22 +320,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: 54ed9c2d46511eb0fe13536a0b4edce56ef36d9f27f081ba1f65fce7ae5151ac
-    last_sync_time: 1761480473
-    sync_source: dxf
+    content_hash: a17946fdde4bb569b2f669317fab0a97fba24f4df90b0ca58dece83d0344509e
+    last_sync_time: 1761488864
+    sync_source: yaml
   center:
     x: 4868.491665752536
     y: 292.7165591527828
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - Wege Schraffur
   - Defpoints
   - 0-BLOCKS
   - Gebäude
@@ -347,16 +338,34 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - RAHMEN
-  - FG Buffer Path
-  - Gastrasse Buffer Path
-  - FG Buffer Path Array
-  - Gastrasse Buffer Path Array
-  - Mittelspannungsleitung
-  - Mittelspannungsleitung Buffer Path
-  - Mittelspannungsleitung Array
-  - Mittelspannungsleitung Buffer Path Array
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
   - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - RAHMEN
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -408,35 +417,26 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
+  - Grünfläche
+  - Wege Schraffur
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - Lagerfläche
   - Lagerfläche Schraffur
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - PV Transformer
-  - 05 Löschwasserkissen
-  - Bäume
-  - 02 Sondergebiet
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Grünfläche
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - Mittelspannungsleitung
+  - Mittelspannungsleitung Buffer Path
+  - Mittelspannungsleitung Array
+  - Mittelspannungsleitung Buffer Path Array
   - Flur
   - Gemarkung
   - Gemeinde
@@ -527,22 +527,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: 99434a92424c27c983dd8db69e35787849f0b63dbf7b540cf16f82d416cf50df
-    last_sync_time: 1761480473
-    sync_source: dxf
+    content_hash: dfd5609af9188d8d44b522650283bde12bfbbb6e3bcc13597cf2cf228e844c21
+    last_sync_time: 1761488864
+    sync_source: yaml
   center:
     x: 6869.144582332245
     y: 391.8814999718617
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - T--Strasse_BESC
-  - T--Strasse_befestigt_OK
-  - PV Modules
-  - Wege Schraffur
   - Defpoints
   - 0-BLOCKS
   - Gebäude
@@ -554,16 +545,34 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - RAHMEN
-  - FG Buffer Path
-  - Gastrasse Buffer Path
-  - FG Buffer Path Array
-  - Gastrasse Buffer Path Array
-  - Mittelspannungsleitung
-  - Mittelspannungsleitung Buffer Path
-  - Mittelspannungsleitung Array
-  - Mittelspannungsleitung Buffer Path Array
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
   - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - RAHMEN
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -615,35 +624,26 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
+  - Grünfläche
+  - Wege Schraffur
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
+  - T--Strasse_BESC
+  - T--Strasse_befestigt_OK
+  - PV Modules
   - Lagerfläche
   - Lagerfläche Schraffur
-  - PV Modules Schraffur
-  - PV Transformers
-  - M-Trafostation
-  - PV Transformer
-  - 05 Löschwasserkissen
-  - Bäume
-  - 02 Sondergebiet
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Grünfläche
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - Mittelspannungsleitung
+  - Mittelspannungsleitung Buffer Path
+  - Mittelspannungsleitung Array
+  - Mittelspannungsleitung Buffer Path Array
   - Flur
   - Gemarkung
   - Gemeinde
