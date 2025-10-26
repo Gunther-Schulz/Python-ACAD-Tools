@@ -351,6 +351,24 @@ styles:
       lineweight: 13
       individual_hatches: false
 
+  lagerfläche:
+    layer:
+      color: "ash"
+      lineweight: 13
+      transparency: 0
+    hatch:
+      pattern: "CROSS"
+      color: "ash"
+      transparency: 0
+      individual_hatches: true
+
+  lagerflächeLegend:
+    hatch:
+      pattern: "CROSS"
+      color: "ash"
+      transparency: 0
+      individual_hatches: false
+
   geltungsbereichFPlan:
     layer:
       color: "vermilion-strong"

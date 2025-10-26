@@ -63,7 +63,7 @@ legends:
           - name: "Grundflächenzahl"
             type: empty
             blockSymbol: "GRZ"
-            blockSymbolScale: 2
+            blockSymbolScale: 1.2
       - name: "Bauweise, Baulinien, Baugrenzen"
         sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -179,6 +179,10 @@ legends:
             type: area
             applyHatch: true
             style: pvModulesLegend
+          - name: "Lagerfläche"
+            type: area
+            applyHatch: true
+            style: lagerflächeLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
             blockSymbol: "PV Transformer"
@@ -259,7 +263,7 @@ legends:
           - name: "Grundflächenzahl"
             type: empty
             blockSymbol: "GRZ"
-            blockSymbolScale: 2
+            blockSymbolScale: 1.2
       - name: "Bauweise, Baulinien, Baugrenzen"
         sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -363,6 +367,10 @@ legends:
             type: area
             applyHatch: true
             style: pvModulesLegend
+          - name: "Lagerfläche"
+            type: area
+            applyHatch: true
+            style: lagerflächeLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
             blockSymbol: "PV Transformer"
@@ -435,7 +443,7 @@ legends:
           - name: "Grundflächenzahl"
             type: empty
             blockSymbol: "GRZ"
-            blockSymbolScale: 2
+            blockSymbolScale: 1.2
       - name: "Bauweise, Baulinien, Baugrenzen"
         sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -539,6 +547,10 @@ legends:
             type: area
             applyHatch: true
             style: pvModulesLegend
+          - name: "Lagerfläche"
+            type: area
+            applyHatch: true
+            style: lagerflächeLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
             blockSymbol: "PV Transformer"
@@ -614,7 +626,7 @@ legends:
           - name: "Grundflächenzahl"
             type: empty
             blockSymbol: "GRZ"
-            blockSymbolScale: 2
+            blockSymbolScale: 1.2
       - name: "Bauweise, Baulinien, Baugrenzen"
         sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -717,6 +729,10 @@ legends:
             type: area
             applyHatch: true
             style: pvModulesLegend
+          - name: "Lagerfläche"
+            type: area
+            applyHatch: true
+            style: lagerflächeLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
             blockSymbol: "PV Transformer"
