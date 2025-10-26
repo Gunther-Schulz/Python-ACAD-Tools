@@ -126,10 +126,11 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _find_text_by_name(self, doc, name):
         """Find a text entity by name using custom data."""
-        # Search modelspace first (where most text entities are), then paperspace
-        spaces = [doc.modelspace(), doc.paperspace()]
+        # Search modelspace first, then ALL layouts (paperspace entities are in layouts!)
+        spaces_to_search = [doc.modelspace()]
+        spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
-        for space in spaces:
+        for space in spaces_to_search:
             entity = find_entity_by_xdata_name(space, name, ['TEXT', 'MTEXT'])
             if entity and self._validate_entity_handle(entity, name):
                 return entity
@@ -138,16 +139,63 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
         """Find a text entity by name without handle validation for recovery purposes."""
-        # Search modelspace first (where most text entities are), then paperspace
-        spaces = [doc.modelspace(), doc.paperspace()]
+        # Search modelspace first, then ALL layouts (paperspace entities are in layouts!)
+        spaces_to_search = [doc.modelspace()]
+        spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
 
-        for space in spaces:
+        for space in spaces_to_search:
             entity = find_entity_by_xdata_name(space, entity_name, ['TEXT', 'MTEXT'])
             if entity:
                 # Return entity without handle validation for recovery
                 return entity
 
         return None
+    
+    def _find_entity_by_handle_first(self, doc, config):
+        """
+        Override base class to search ALL layouts for text entities.
+        
+        Text entities can be in modelspace or any paperspace layout,
+        so we need to search all spaces.
+        """
+        if not config:
+            log_warning("Config is None in _find_entity_by_handle_first")
+            return None
+
+        entity_name = config.get('name', 'unnamed')
+        sync_metadata = config.get('_sync', {})
+        stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
+
+        # STEP 1: Try handle-first search in all spaces
+        if stored_handle:
+            # Search modelspace first, then all paperspace layouts
+            spaces_to_search = [doc.modelspace()]
+            spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
+            
+            for space in spaces_to_search:
+                try:
+                    entity = space.get_entity_by_handle(stored_handle)
+                    if entity:
+                        log_debug(f"Found text '{entity_name}' by handle {stored_handle} in {space.name}")
+
+                        # Update entity name in XDATA if it changed
+                        self._update_entity_name_in_xdata(entity, entity_name)
+
+                        return entity
+                except Exception as e:
+                    log_debug(f"Handle search failed in {space.name} for '{entity_name}' (handle: {stored_handle}): {str(e)}")
+                    continue
+
+        # STEP 2: Fallback to name-based search
+        log_debug(f"Falling back to name search for text '{entity_name}'")
+        return self._find_text_by_name(doc, entity_name)
+
+    def _find_entity_by_name(self, doc, entity_name):
+        """
+        Override base class abstract method.
+        Find a text entity by name - delegates to _find_text_by_name.
+        """
+        return self._find_text_by_name(doc, entity_name)
 
     def _extract_text_properties(self, text_entity, base_config):
         """
@@ -325,23 +373,6 @@ class TextInsertManager(UnifiedSyncProcessor):
             return minimal_config
 
     # _attach_entity_metadata and _calculate_entity_hash are now implemented in UnifiedSyncProcessor
-
-    def _find_entity_by_name(self, doc, entity_name):
-        """Find a text entity by name."""
-        return self._find_text_by_name(doc, entity_name)
-
-    def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
-        """Find a text entity by name without handle validation for recovery purposes."""
-        # Search modelspace first (where most text entities are), then paperspace
-        spaces = [doc.modelspace(), doc.paperspace()]
-
-        for space in spaces:
-            entity = find_entity_by_xdata_name(space, entity_name, ['TEXT', 'MTEXT'])
-            if entity:
-                # Return entity without handle validation for recovery
-                return entity
-
-        return None
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
         """

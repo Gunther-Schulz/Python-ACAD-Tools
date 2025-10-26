@@ -620,22 +620,6 @@ class UnifiedSyncProcessor(ABC):
         except Exception as e:
             log_warning(f"Error syncing XDATA name for entity {entity.dxf.handle}: {str(e)}")
 
-    def _get_entity_name_from_xdata(self, entity):
-        """Extract entity name from XDATA."""
-        try:
-            from src.dxf_utils import XDATA_ENTITY_NAME_KEY
-            xdata = entity.get_xdata(XDATA_APP_ID)
-            if xdata:
-                in_entity_section = False
-                for code, value in xdata:
-                    if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
-                        in_entity_section = True
-                    elif in_entity_section and code == 1000:
-                        return value  # This is the entity name
-            return None
-        except Exception:
-            return None
-
     def _update_entity_xdata_name(self, entity, new_name):
         """Update entity name in XDATA."""
         try:

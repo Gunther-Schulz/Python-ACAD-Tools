@@ -50,7 +50,7 @@ texts:
     sync_source: yaml
 - name: Satzungs NW
   targetLayer: Plantext
-  sync: push
+  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
@@ -125,7 +125,7 @@ texts:
     sync_source: yaml
 - name: Satzungs NO
   targetLayer: Plantext
-  sync: push
+  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
@@ -200,7 +200,7 @@ texts:
     sync_source: yaml
 - name: Satzungs S
   targetLayer: Plantext
-  sync: push
+  sync: auto
   paperspace: true
   justification: CENTER
   text: 'VORENTWURF
