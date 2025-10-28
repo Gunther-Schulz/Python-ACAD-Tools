@@ -33,7 +33,10 @@ from src.operations import (
     create_filtered_by_column_layer,
     create_repair_layer,
     create_remove_interior_rings_layer,
-    create_clean_line_layer
+    create_clean_line_layer,
+    create_extract_boundary_layer,
+    create_break_at_intersections_layer,
+    create_remove_duplicate_lines_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -552,6 +555,12 @@ class LayerProcessor:
             result = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'cleanLine':
             result = create_clean_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'extractBoundary':
+            result = create_extract_boundary_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'breakAtIntersections':
+            result = create_break_at_intersections_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'removeDuplicateLines':
+            result = create_remove_duplicate_lines_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

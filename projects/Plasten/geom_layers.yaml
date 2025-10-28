@@ -39,8 +39,30 @@ geomLayers:
     close: true
     # sync: push
 
-  - name: Flur
+  # Input polygon layers (kept for filtering operations like filterByIntersection)
+  - name: Flur Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
+    label: flurname
+    viewports:
+      - name: WorkView
+        style: flurWorkView
+
+  - name: Gemarkung Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
+    label: gmkname
+    viewports:
+      - name: WorkView
+        style: gemarkungWorkView
+
+  - name: Gemeinde Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
+    label: gen
+    viewports:
+      - name: WorkView
+        style: gemeindeWorkView
+
+  # Output boundary layers (cleaned, duplicate-free, for AutoCAD export)
+  - name: Flur
     label: flurname
     close: true
     linetypeScale: 0.2
@@ -54,9 +76,17 @@ geomLayers:
       - type: simpleLabel
         labelColumn: flurname
         style: flurgrenze
+        layers:
+          - Flur Input
+      - type: extractBoundary
+        layers:
+          - Flur Input
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
 
   - name: Gemarkung
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
     label: gmkname
     close: true
     linetypeGeneration: true
@@ -69,9 +99,17 @@ geomLayers:
       - type: simpleLabel
         labelColumn: gmkname
         style: gemarkungsgrenze
+        layers:
+          - Gemarkung Input
+      - type: extractBoundary
+        layers:
+          - Gemarkung Input
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
 
   - name: Gemeinde
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
     label: gen
     close: true
     linetypeGeneration: true
@@ -84,6 +122,15 @@ geomLayers:
       - type: simpleLabel
         labelColumn: gen
         style: gemeindegrenze
+        layers:
+          - Gemeinde Input
+      - type: extractBoundary
+        layers:
+          - Gemeinde Input
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
 
   - name: Parcel
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
@@ -633,13 +680,13 @@ geomLayers:
               - "14"
       - type: filterByIntersection
         layers:
-          - name: Flur
+          - name: Flur Input
             values:
               - "Flur 1"
-          - name: Gemarkung
+          - name: Gemarkung Input
             values:
               - "Groß Plasten"
-          - name: Gemeinde
+          - name: Gemeinde Input
             values:
               - "Groß Plasten"
       - type: dissolve
@@ -660,13 +707,13 @@ geomLayers:
               - "24/9"
       - type: filterByIntersection
         layers:
-          - name: Flur
+          - name: Flur Input
             values:
               - "Flur 1"
-          - name: Gemarkung
+          - name: Gemarkung Input
             values:
               - "Groß Plasten"
-          - name: Gemeinde
+          - name: Gemeinde Input
             values:
               - "Groß Plasten"
       - type: dissolve
@@ -686,13 +733,13 @@ geomLayers:
               - "41/1"
       - type: filterByIntersection
         layers:
-          - name: Flur
+          - name: Flur Input
             values:
               - "Flur 2"
-          - name: Gemarkung
+          - name: Gemarkung Input
             values:
               - "Klein Plasten"
-          - name: Gemeinde
+          - name: Gemeinde Input
             values:
               - "Groß Plasten"
       - type: dissolve

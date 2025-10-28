@@ -19,6 +19,9 @@ from .filter_by_column_operation import create_filtered_by_column_layer
 from .repair_operation import create_repair_layer
 from .remove_interior_rings_operation import create_remove_interior_rings_layer
 from .clean_line_operation import create_clean_line_layer
+from .extract_boundary_operation import create_extract_boundary_layer
+from .break_at_intersections_operation import create_break_at_intersections_layer
+from .remove_duplicate_lines_operation import create_remove_duplicate_lines_layer
 __all__ = [
     'create_copy_layer',
     'create_buffer_layer',
@@ -41,5 +44,8 @@ __all__ = [
     'create_filtered_by_column_layer',
     'create_repair_layer',
     'create_remove_interior_rings_layer',
-    'create_clean_line_layer'
+    'create_clean_line_layer',
+    'create_extract_boundary_layer',
+    'create_break_at_intersections_layer',
+    'create_remove_duplicate_lines_layer'
 ]
