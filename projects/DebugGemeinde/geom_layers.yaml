@@ -1,0 +1,99 @@
+geomLayers:
+  # ============================================================================
+  # DEBUG: Administrative Boundary Processing (Gemeinde, Gemarkung, Flur)
+  # ============================================================================
+  # This configuration tests the three-step process:
+  # 1. extractBoundary: Convert polygons to boundary lines
+  # 2. breakAtIntersections: Break lines where they meet
+  # 3. removeDuplicateLines: Remove overlapping segments
+  
+  # --------------------------------------------------------------------------
+  # Original Polygons (for comparison)
+  # --------------------------------------------------------------------------
+  - name: Gemeinde Original
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
+    label: gen
+    sync: push
+    close: true
+    style:
+      layer:
+        color: 8  # Gray
+        lineweight: 50
+
+  - name: Gemarkung Original
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
+    label: gmkname
+    sync: push
+    close: true
+    style:
+      layer:
+        color: 8  # Gray
+        lineweight: 50
+
+  - name: Flur Original
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
+    label: flurname
+    sync: push
+    close: true
+    style:
+      layer:
+        color: 8  # Gray
+        lineweight: 50
+
+  # --------------------------------------------------------------------------
+  # Final Cleaned Boundaries (with linetypes)
+  # --------------------------------------------------------------------------
+  - name: Gemeinde
+    sync: push
+    close: false
+    linetypeGeneration: true
+    style:
+      layer:
+        color: 1  # Red
+        lineweight: 50
+        linetype: ACAD_ISO10W100
+    operations:
+      - type: extractBoundary
+        layers:
+          - Gemeinde Original
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
+
+  - name: Gemarkung
+    sync: push
+    close: false
+    linetypeGeneration: true
+    style:
+      layer:
+        color: 3  # Green
+        lineweight: 50
+        linetype: ACAD_ISO12W100
+    operations:
+      - type: extractBoundary
+        layers:
+          - Gemarkung Original
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
+
+  - name: Flur
+    sync: push
+    close: false
+    linetypeGeneration: true
+    style:
+      layer:
+        color: 5  # Blue
+        lineweight: 50
+        linetype: ACAD_ISO14W100
+    operations:
+      - type: extractBoundary
+        layers:
+          - Flur Original
+      - type: breakAtIntersections
+        tolerance: 0.001
+      - type: removeDuplicateLines
+        tolerance: 0.01
+

@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import LineString, MultiLineString, Point, MultiPoint
-from shapely.ops import split, unary_union
+from shapely.ops import split, unary_union, linemerge
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning
 import numpy as np
@@ -66,6 +66,7 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
     
     # Find all intersection points
     intersection_points = set()
+    intersections_found = 0
     
     # Check each pair of lines for intersections
     for i in range(len(all_lines)):
@@ -74,6 +75,7 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
             line2 = all_lines[j]
             
             if line1.intersects(line2):
+                intersections_found += 1
                 intersection = line1.intersection(line2)
                 
                 # Extract points from intersection
@@ -83,11 +85,29 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
                     for pt in intersection.geoms:
                         intersection_points.add((pt.x, pt.y))
                 elif isinstance(intersection, LineString):
-                    # Lines overlap - add endpoints
+                    # Lines overlap - add only ENDPOINTS (corners)
                     coords = list(intersection.coords)
                     if coords:
+                        # Add start and end points only
                         intersection_points.add((coords[0][0], coords[0][1]))
                         intersection_points.add((coords[-1][0], coords[-1][1]))
+                elif isinstance(intersection, MultiLineString):
+                    # Multiple overlapping segments - merge connected segments
+                    # Use linemerge to join connected line segments
+                    merged = linemerge(intersection)
+                    if isinstance(merged, LineString):
+                        # Successfully merged into single line - add endpoints
+                        coords = list(merged.coords)
+                        if coords:
+                            intersection_points.add((coords[0][0], coords[0][1]))
+                            intersection_points.add((coords[-1][0], coords[-1][1]))
+                    else:
+                        # Still MultiLineString - add endpoints of each disconnected part
+                        for line_part in merged.geoms if hasattr(merged, 'geoms') else [merged]:
+                            coords = list(line_part.coords)
+                            if coords:
+                                intersection_points.add((coords[0][0], coords[0][1]))
+                                intersection_points.add((coords[-1][0], coords[-1][1]))
     
     # Also add all line endpoints as potential break points
     for line in all_lines:
@@ -96,7 +116,7 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
             intersection_points.add((coords[0][0], coords[0][1]))
             intersection_points.add((coords[-1][0], coords[-1][1]))
     
-    log_debug(f"Found {len(intersection_points)} intersection points")
+    log_info(f"Found {intersections_found} intersections between {len(all_lines)} lines, resulting in {len(intersection_points)} break points")
     
     # Convert to Point geometries
     split_points = [Point(x, y) for x, y in intersection_points]
@@ -105,7 +125,7 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
     # Break each line at intersection points
     broken_lines = []
     
-    for line in all_lines:
+    for line_idx, line in enumerate(all_lines):
         # Find which split points are ON this line (within tolerance)
         points_on_line = []
         for pt in split_points:
@@ -114,39 +134,53 @@ def create_break_at_intersections_layer(all_layers, project_settings, crs, layer
             if dist < tolerance:
                 # Project point onto line to get exact position
                 projected_dist = line.project(pt)
-                # Only add if not at the very start or end
-                if tolerance < projected_dist < (line.length - tolerance):
-                    points_on_line.append(pt)
+                # Add ALL points that are on the line
+                # Don't exclude endpoints - shared edges can start/end at polygon corners
+                points_on_line.append((projected_dist, pt))
         
         if not points_on_line:
             # No split points on this line, keep as-is
             broken_lines.append(line)
         else:
-            # Split the line at all points
-            current_geom = line
-            for pt in points_on_line:
-                try:
-                    # Buffer the point slightly to ensure it intersects
-                    pt_buffered = pt.buffer(tolerance * 2)
-                    result = split(current_geom, pt_buffered)
-                    
-                    if hasattr(result, 'geoms') and len(result.geoms) > 1:
-                        # Successfully split - keep first part, continue with rest
-                        for part in result.geoms[:-1]:
-                            if isinstance(part, LineString) and part.length > tolerance:
-                                broken_lines.append(part)
-                        current_geom = result.geoms[-1]
-                    # else: split failed, continue with current geometry
-                except Exception as e:
-                    log_debug(f"Failed to split line at point: {str(e)}")
+            # Sort points by distance along line
+            points_on_line.sort(key=lambda x: x[0])
             
-            # Add the remaining part
-            if isinstance(current_geom, LineString) and current_geom.length > tolerance:
-                broken_lines.append(current_geom)
-            elif isinstance(current_geom, MultiLineString):
-                for part in current_geom.geoms:
-                    if part.length > tolerance:
-                        broken_lines.append(part)
+            # Use substring to extract segments (preserves all vertices)
+            split_distances = [0.0] + [dist for dist, pt in points_on_line] + [line.length]
+            
+            # Remove duplicate distances
+            unique_distances = []
+            for dist in split_distances:
+                if not unique_distances or abs(dist - unique_distances[-1]) > tolerance:
+                    unique_distances.append(dist)
+            
+            # Create segments between consecutive distances
+            segments_created = 0
+            for i in range(len(unique_distances) - 1):
+                start_dist = unique_distances[i]
+                end_dist = unique_distances[i + 1]
+                
+                if end_dist - start_dist > tolerance:
+                    # Use substring to extract the segment (preserves all vertices!)
+                    try:
+                        from shapely.ops import substring
+                        segment = substring(line, start_dist, end_dist)
+                        
+                        if segment and segment.length > tolerance:
+                            broken_lines.append(segment)
+                            segments_created += 1
+                    except Exception as e:
+                        log_debug(f"Failed to create substring: {str(e)}")
+                        # Fallback: use interpolate for start/end
+                        try:
+                            start_pt = line.interpolate(start_dist)
+                            end_pt = line.interpolate(end_dist)
+                            segment = LineString([start_pt, end_pt])
+                            if segment.length > tolerance:
+                                broken_lines.append(segment)
+                                segments_created += 1
+                        except:
+                            pass
     
     log_info(f"Broke {len(all_lines)} lines into {len(broken_lines)} segments for layer '{layer_name}'")
     

@@ -1,5 +1,5 @@
 import geopandas as gpd
-from shapely.geometry import LineString, MultiLineString
+from shapely.geometry import LineString, MultiLineString, Point
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning
 import numpy as np
@@ -65,6 +65,8 @@ def create_remove_duplicate_lines_layer(all_layers, project_settings, crs, layer
     unique_lines = []
     skip_indices = set()
     
+    duplicates_found = []  # Track what we're removing
+    
     for i in range(len(all_lines)):
         if i in skip_indices:
             continue
@@ -77,6 +79,7 @@ def create_remove_duplicate_lines_layer(all_layers, project_settings, crs, layer
             if _lines_are_duplicate(line1, unique_line, tolerance):
                 is_duplicate = True
                 skip_indices.add(i)
+                duplicates_found.append((i, line1.length))
                 break
         
         if not is_duplicate:
@@ -86,11 +89,15 @@ def create_remove_duplicate_lines_layer(all_layers, project_settings, crs, layer
                     line2 = all_lines[j]
                     if _lines_are_duplicate(line1, line2, tolerance):
                         skip_indices.add(j)
+                        duplicates_found.append((j, line2.length))
+                        if line2.length > 1000:  # Log large "duplicates"
+                            log_info(f"  Removing large 'duplicate': {line2.length:.1f}m (indices {i}, {j})")
             
             unique_lines.append(line1)
     
     duplicates_removed = len(all_lines) - len(unique_lines)
-    log_info(f"Removed {duplicates_removed} duplicate lines, keeping {len(unique_lines)} unique lines for layer '{layer_name}'")
+    total_removed_length = sum(length for _, length in duplicates_found)
+    log_info(f"Removed {duplicates_removed} duplicate lines (total {total_removed_length:.1f}m), keeping {len(unique_lines)} unique lines for layer '{layer_name}'")
     
     # Create GeoDataFrame
     result_gdf = gpd.GeoDataFrame(geometry=unique_lines, crs=crs)
@@ -102,38 +109,43 @@ def _lines_are_duplicate(line1, line2, tolerance):
     """
     Check if two lines are duplicates (overlap within tolerance).
     Lines can be going in the same or opposite direction.
+    ULTRA-STRICT: Lines must be nearly identical (shared polygon edges only).
     """
     
-    # Quick rejection: if lines don't overlap at all
-    if not line1.buffer(tolerance).intersects(line2):
+    # STRICT length check: duplicates must have VERY similar lengths
+    length_ratio = min(line1.length, line2.length) / max(line1.length, line2.length)
+    if length_ratio < 0.999:  # Within 0.1% - basically identical
         return False
     
-    # More precise check: Hausdorff distance
-    # This measures the maximum distance between the two lines
+    # STRICT endpoints check: both ends must match
+    line1_coords = list(line1.coords)
+    line2_coords = list(line2.coords)
+    
+    if len(line1_coords) < 2 or len(line2_coords) < 2:
+        return False
+    
+    start1, end1 = Point(line1_coords[0]), Point(line1_coords[-1])
+    start2, end2 = Point(line2_coords[0]), Point(line2_coords[-1])
+    
+    # Check if endpoints match (same or opposite direction)
+    # Shared edges can be within 1 meter of each other
+    check_tol = max(tolerance, 1.0)  # Use at least 1 meter
+    same_dir = (start1.distance(start2) < check_tol and end1.distance(end2) < check_tol)
+    opp_dir = (start1.distance(end2) < check_tol and end1.distance(start2) < check_tol)
+    
+    if not (same_dir or opp_dir):
+        return False
+    
+    # Hausdorff distance: EVERY point must be close
     hausdorff_dist = line1.hausdorff_distance(line2)
-    
-    if hausdorff_dist > tolerance:
+    if hausdorff_dist > check_tol:
         return False
     
-    # Additional check: symmetric difference area
-    # If lines overlap almost completely, their symmetric difference should be small
-    try:
-        buffer1 = line1.buffer(tolerance / 10)  # Thin buffer
-        buffer2 = line2.buffer(tolerance / 10)
-        
-        # Symmetric difference: area that's in one but not both
-        sym_diff = buffer1.symmetric_difference(buffer2)
-        union_area = buffer1.union(buffer2).area
-        
-        if union_area > 0:
-            overlap_ratio = 1.0 - (sym_diff.area / union_area)
-            # If more than 90% overlap, consider duplicates
-            return overlap_ratio > 0.9
-        
-    except Exception as e:
-        log_debug(f"Error in overlap ratio calculation: {str(e)}")
+    # Final check: lines must actually overlap in space
+    if not line1.buffer(check_tol).intersects(line2):
+        return False
     
-    # Fallback: if Hausdorff distance is small, likely duplicates
+    # All checks passed - these are TRUE duplicates (shared edges)
     return True
 
 
