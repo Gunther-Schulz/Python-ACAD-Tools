@@ -401,7 +401,7 @@ styles:
     layer:
       color: "white"
       lineweight: 13
-      plot: false
+      plot: true
 
   grünfläche:
     layer:
