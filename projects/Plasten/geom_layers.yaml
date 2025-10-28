@@ -752,15 +752,17 @@ geomLayers:
         layers:
           - Hard Exclusions
         reverseDifference: false
-      # Buffer trick: -20m (round) then +20m (round) to shape AgriPV
-      # This ensures Baugrenze can reach all areas
+      # Buffer trick: -20m (mitre) then +20m (mitre) to shape AgriPV
+      # This ensures Baugrenze can reach all areas with sharp corners
       - type: buffer
         distance: -20
-        joinStyle: round
+        joinStyle: mitre
+        mitreLimit: 2.7
         quadSegs: 32
       - type: buffer
         distance: 20
-        joinStyle: round  # Round for consistent treatment with biotope buffers
+        joinStyle: mitre
+        mitreLimit: 2.7
         quadSegs: 32
       # Clean up small artifacts
       - type: filterGeometry
@@ -854,7 +856,7 @@ geomLayers:
           - Baugrenze
         distance: 20
         joinStyle: mitre
-        mitreLimit: 2.7  # Allows mitre extension up to 30m (1.5 × 20m)
+        mitreLimit: 2.9  # Allows mitre extension up to 30m (1.5 × 20m)
 
   # Final AgriPV: Constrained to be within 20m of Baugrenze
   # Note: Include AgriPV areas are merged in to override the 20m rule
