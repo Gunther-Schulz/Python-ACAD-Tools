@@ -36,7 +36,8 @@ from src.operations import (
     create_clean_line_layer,
     create_extract_boundary_layer,
     create_break_at_intersections_layer,
-    create_remove_duplicate_lines_layer
+    create_remove_duplicate_lines_layer,
+    create_dissolve_by_majority_intersection_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -561,6 +562,8 @@ class LayerProcessor:
             result = create_break_at_intersections_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'removeDuplicateLines':
             result = create_remove_duplicate_lines_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'dissolveByMajorityIntersection':
+            result = create_dissolve_by_majority_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

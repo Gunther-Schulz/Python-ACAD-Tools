@@ -17,16 +17,22 @@ reducedDxf:
     - Parcel
     - Parcel Label
     - Flur
+    - Flur_labels
     - Gemarkung
+    - Gemarkung_labels
     - Gemeinde
+    - Gemeinde_labels
     - 0-BLOCKS
   layers:
     - 0-BLOCKS
     - Parcel
     - Parcel Label
     - Flur
+    - Flur_labels
     - Gemarkung
+    - Gemarkung_labels
     - Gemeinde
+    - Gemeinde_labels
     - Wald
     - Moor
     - Geschütze Biotope Innenfläche
@@ -36,8 +42,8 @@ reducedDxf:
     - Mittelspannungsleitung
     - Gastrasse
     - Gebäude
-    - PV Modules
-    - Lagerfläche
+    # - PV Modules
+    # - Lagerfläche
     - AgriPV
     - Baugrenze
     - Geltungsbereich NW

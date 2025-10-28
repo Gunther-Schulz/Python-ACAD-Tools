@@ -61,10 +61,23 @@ geomLayers:
       - name: WorkView
         style: gemeindeWorkView
 
+  # Reconstructed Gemeinde (high-detail boundaries from Gemarkung polygons)
+  # Uses dissolveByMajorityIntersection to rebuild accurate Gemeinde boundaries
+  # from higher-resolution Gemarkung data, eliminating topological inconsistencies.
+  - name: Gemeinde Reconstructed
+    label: gen
+    operations:
+      - type: dissolveByMajorityIntersection
+        sourceLayer: Gemarkung Input
+        referenceLayer: Gemeinde Input
+        transferAttributes:
+          - gen
+        threshold: 50.0
+
   # Output boundary layers (cleaned, duplicate-free, for AutoCAD export)
   - name: Flur
     label: flurname
-    close: true
+    close: false
     linetypeScale: 0.2
     linetypeGeneration: true
     style: flurgrenze
@@ -80,10 +93,13 @@ geomLayers:
         tolerance: 0.001
       - type: removeDuplicateLines
         tolerance: 0.01
+      - type: simpleLabel
+        layers:
+          - Flur Input
 
   - name: Gemarkung
     label: gmkname
-    close: true
+    close: false
     linetypeGeneration: true
     style: gemarkungsgrenze
     sync: push
@@ -98,10 +114,13 @@ geomLayers:
         tolerance: 0.001
       - type: removeDuplicateLines
         tolerance: 0.01
+      - type: simpleLabel
+        layers:
+          - Gemarkung Input
 
   - name: Gemeinde
     label: gen
-    close: true
+    close: false
     linetypeGeneration: true
     style: gemeindegrenze
     sync: push
@@ -111,11 +130,14 @@ geomLayers:
     operations:
       - type: extractBoundary
         layers:
-          - Gemeinde Input
+          - Gemeinde Reconstructed
       - type: breakAtIntersections
         tolerance: 0.001
       - type: removeDuplicateLines
         tolerance: 0.01
+      - type: simpleLabel
+        layers:
+          - Gemeinde Reconstructed
 
   - name: Parcel
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"

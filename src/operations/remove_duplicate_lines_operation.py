@@ -91,13 +91,13 @@ def create_remove_duplicate_lines_layer(all_layers, project_settings, crs, layer
                         skip_indices.add(j)
                         duplicates_found.append((j, line2.length))
                         if line2.length > 1000:  # Log large "duplicates"
-                            log_info(f"  Removing large 'duplicate': {line2.length:.1f}m (indices {i}, {j})")
+                            log_debug(f"  Removing large 'duplicate': {line2.length:.1f}m (indices {i}, {j})")
             
             unique_lines.append(line1)
     
     duplicates_removed = len(all_lines) - len(unique_lines)
     total_removed_length = sum(length for _, length in duplicates_found)
-    log_info(f"Removed {duplicates_removed} duplicate lines (total {total_removed_length:.1f}m), keeping {len(unique_lines)} unique lines for layer '{layer_name}'")
+    log_debug(f"Removed {duplicates_removed} duplicate lines (total {total_removed_length:.1f}m), keeping {len(unique_lines)} unique lines for layer '{layer_name}'")
     
     # Create GeoDataFrame
     result_gdf = gpd.GeoDataFrame(geometry=unique_lines, crs=crs)

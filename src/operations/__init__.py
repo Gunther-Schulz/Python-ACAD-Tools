@@ -22,6 +22,7 @@ from .clean_line_operation import create_clean_line_layer
 from .extract_boundary_operation import create_extract_boundary_layer
 from .break_at_intersections_operation import create_break_at_intersections_layer
 from .remove_duplicate_lines_operation import create_remove_duplicate_lines_layer
+from .dissolve_by_majority_intersection_operation import create_dissolve_by_majority_intersection_layer
 __all__ = [
     'create_copy_layer',
     'create_buffer_layer',
@@ -47,5 +48,6 @@ __all__ = [
     'create_clean_line_layer',
     'create_extract_boundary_layer',
     'create_break_at_intersections_layer',
-    'create_remove_duplicate_lines_layer'
+    'create_remove_duplicate_lines_layer',
+    'create_dissolve_by_majority_intersection_layer'
 ]

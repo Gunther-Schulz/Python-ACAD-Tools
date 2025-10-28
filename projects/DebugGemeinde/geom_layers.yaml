@@ -41,6 +41,25 @@ geomLayers:
         lineweight: 50
 
   # --------------------------------------------------------------------------
+  # Reconstructed Gemeinde (high-detail from Gemarkung)
+  # --------------------------------------------------------------------------
+  - name: Gemeinde Reconstructed
+    label: gen
+    sync: push
+    close: true
+    style:
+      layer:
+        color: 6  # Magenta - to distinguish from original
+        lineweight: 35
+    operations:
+      - type: dissolveByMajorityIntersection
+        sourceLayer: Gemarkung Original
+        referenceLayer: Gemeinde Original
+        transferAttributes:
+          - gen
+        threshold: 50.0
+
+  # --------------------------------------------------------------------------
   # Final Cleaned Boundaries (with linetypes)
   # --------------------------------------------------------------------------
   - name: Gemeinde
@@ -55,7 +74,7 @@ geomLayers:
     operations:
       - type: extractBoundary
         layers:
-          - Gemeinde Original
+          - Gemeinde Reconstructed
       - type: breakAtIntersections
         tolerance: 0.001
       - type: removeDuplicateLines
