@@ -50,7 +50,10 @@ class ReducedDXFCreator:
                 log_warning("No templateDxfFilename specified in project settings, required for reduced DXF creation")
                 return
 
-            log_info(f"Creating reduced DXF with {len(reduced_layers)} layers from template")
+            # Check copy mode
+            copy_all_types = reduced_settings.get('copyAllEntityTypes', True)
+            copy_mode = "all entity types" if copy_all_types else "basic geometry only"
+            log_info(f"Creating reduced DXF with {len(reduced_layers)} layers from template ({copy_mode})")
 
             # Create a new document based on the template
             reduced_doc, reduced_msp = self._create_reduced_doc(template_filename)
@@ -58,7 +61,7 @@ class ReducedDXFCreator:
                 log_error("Failed to create reduced DXF document")
                 return
 
-            # Copy only the basic geometry from specified layers
+            # Copy entities from specified layers (all types or basic geometry based on config)
             self._copy_from_main_dxf(reduced_doc, reduced_msp, reduced_layers)
 
             # Clean up and save the document
@@ -296,7 +299,7 @@ class ReducedDXFCreator:
                 log_warning(f"No {process_type} were copied to the reduced DXF")
 
     def _copy_from_main_dxf(self, reduced_doc, reduced_msp, reduced_layers):
-        """Copy basic geometry from main DXF to reduced DXF."""
+        """Copy entities from main DXF to reduced DXF (all types or selective based on config)."""
         log_debug("Copying reduced DXF layers from main DXF")
         try:
             original_doc = ezdxf.readfile(self.dxf_filename)
@@ -341,19 +344,34 @@ class ReducedDXFCreator:
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
         """
-        Copy only basic geometry entities from a layer, avoiding blocks and complex structures.
-        Only copies: LWPOLYLINE, LINE, CIRCLE, ARC, POINT, TEXT, MTEXT
+        Copy entities from a layer. By default, copies all entity types.
+        Can be configured to only copy basic geometry types via copyAllEntityTypes: false
         """
         entity_count = 0
         # Query for all entities in the layer
         query = f'*[layer=="{layer_name}"]'
+        
+        # Check configuration - default to copying all entity types
+        reduced_settings = self.project_settings.get('reducedDxf', {})
+        copy_all_types = reduced_settings.get('copyAllEntityTypes', True)
 
         for entity in original_msp.query(query):
             try:
                 # Get entity type
                 dxftype = entity.dxftype()
 
-                # Skip any block references or complex entities
+                # If copying all types, use generic copy
+                if copy_all_types:
+                    try:
+                        new_entity = entity.copy()
+                        reduced_msp.add_entity(new_entity)
+                        entity_count += 1
+                    except Exception as e:
+                        log_warning(f"Failed to copy {dxftype} entity in layer {layer_name}: {str(e)}")
+                    continue
+
+                # Otherwise, use selective copying (legacy behavior)
+                # Skip any block references
                 if dxftype == 'INSERT':
                     continue
 
@@ -480,13 +498,17 @@ class ReducedDXFCreator:
                         log_warning(f"Failed to copy MTEXT: {str(e)}")
 
                 # Skip all other entity types
+                else:
+                    # Log unsupported entity types for visibility
+                    log_info(f"Skipping unsupported entity type '{dxftype}' in layer {layer_name}")
 
                 # Add standard DXFEXPORTER appID to track entities using unified function
-                try:
-                    new_entity.set_xdata(XDATA_APP_ID, create_entity_xdata(SCRIPT_IDENTIFIER))
-                    entity_count += 1
-                except Exception as e:
-                    log_warning(f"Failed to add XDATA to entity: {str(e)}")
+                if new_entity is not None:
+                    try:
+                        new_entity.set_xdata(XDATA_APP_ID, create_entity_xdata(SCRIPT_IDENTIFIER))
+                        entity_count += 1
+                    except Exception as e:
+                        log_warning(f"Failed to add XDATA to entity: {str(e)}")
 
             except Exception as e:
                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
