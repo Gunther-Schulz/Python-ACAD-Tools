@@ -50,6 +50,10 @@ geomLayers:
     viewports:
       - name: WorkView
         style: flurWorkView
+    operations:
+      - type: simpleLabel
+        labelColumn: flurname
+        style: flurgrenze
 
   - name: Gemarkung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
@@ -61,6 +65,10 @@ geomLayers:
     viewports:
       - name: WorkView
         style: gemarkungWorkView
+    operations:
+      - type: simpleLabel
+        labelColumn: gmkname
+        style: gemarkungsgrenze
 
   - name: Gemeinde
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
@@ -72,6 +80,10 @@ geomLayers:
     viewports:
       - name: WorkView
         style: gemeindeWorkView
+    operations:
+      - type: simpleLabel
+        labelColumn: gen
+        style: gemeindegrenze
 
   - name: Parcel
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"

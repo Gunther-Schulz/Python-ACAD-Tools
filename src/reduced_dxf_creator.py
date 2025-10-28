@@ -50,10 +50,12 @@ class ReducedDXFCreator:
                 log_warning("No templateDxfFilename specified in project settings, required for reduced DXF creation")
                 return
 
-            # Check copy mode
+            # Check copy mode and auto-color settings
             copy_all_types = reduced_settings.get('copyAllEntityTypes', True)
+            auto_color = reduced_settings.get('autoColorLayers', False)
             copy_mode = "all entity types" if copy_all_types else "basic geometry only"
-            log_info(f"Creating reduced DXF with {len(reduced_layers)} layers from template ({copy_mode})")
+            color_mode = ", auto-color enabled" if auto_color else ""
+            log_info(f"Creating reduced DXF with {len(reduced_layers)} layers from template ({copy_mode}{color_mode})")
 
             # Create a new document based on the template
             reduced_doc, reduced_msp = self._create_reduced_doc(template_filename)
@@ -116,7 +118,17 @@ class ReducedDXFCreator:
                         log_warning(f"Could not copy header variable {var}: {str(e)}")
 
             # Create a minimal set of layers based on the specified layers
-            for layer_name in self.project_settings.get('reducedDxf', {}).get('layers', []):
+            reduced_settings = self.project_settings.get('reducedDxf', {})
+            auto_color = reduced_settings.get('autoColorLayers', False)
+            keep_default = reduced_settings.get('keepDefaultColor', [])
+            layer_names = reduced_settings.get('layers', [])
+            
+            # Generate color palette for auto-coloring
+            color_palette = self._generate_color_palette(len(layer_names)) if auto_color else []
+            color_index = 0
+            colored_layers = []
+            
+            for layer_name in layer_names:
                 if layer_name not in reduced_doc.layers and layer_name in original_doc.layers:
                     # Get original layer properties
                     try:
@@ -128,6 +140,13 @@ class ReducedDXFCreator:
                             if hasattr(original_layer.dxf, attr):
                                 layer_attribs[attr] = getattr(original_layer.dxf, attr)
 
+                        # Auto-color: Override color if enabled and not in keep-default list
+                        if auto_color and layer_name not in keep_default:
+                            layer_attribs['color'] = color_palette[color_index % len(color_palette)]
+                            colored_layers.append(f"{layer_name} (ACI {layer_attribs['color']})")
+                            color_index += 1
+                            log_debug(f"Auto-assigned color {layer_attribs['color']} to layer: {layer_name}")
+
                         # Create the layer
                         reduced_doc.layers.new(name=layer_name, dxfattribs=layer_attribs)
                         log_debug(f"Created layer: {layer_name}")
@@ -138,6 +157,10 @@ class ReducedDXFCreator:
                             log_warning(f"Created layer {layer_name} with default properties: {str(e)}")
                         except:
                             log_warning(f"Could not create layer {layer_name}")
+
+            # Log auto-coloring results
+            if auto_color and colored_layers:
+                log_info(f"Auto-colored {len(colored_layers)} layers: {', '.join(colored_layers[:5])}{'...' if len(colored_layers) > 5 else ''}")
 
             # Add standard linetypes if missing
             std_linetypes = ['CONTINUOUS', 'DASHED', 'DOTTED', 'DASHDOT']
@@ -160,6 +183,43 @@ class ReducedDXFCreator:
         except Exception as e:
             log_error(f"Error creating reduced DXF: {str(e)}")
             return None, None
+
+    def _generate_color_palette(self, num_colors):
+        """
+        Generate a palette of sensible, distinguishable AutoCAD ACI colors.
+        Returns list of ACI color indices suitable for technical drawings.
+        """
+        # Curated palette of distinguishable, professional CAD colors
+        # Ordered for maximum visual distinction between adjacent layers
+        base_palette = [
+            1,   # Red
+            3,   # Green
+            5,   # Blue
+            6,   # Magenta
+            4,   # Cyan
+            30,  # Orange
+            140, # Brown
+            170, # Light Blue
+            90,  # Light Green
+            130, # Purple
+            50,  # Dark Orange
+            80,  # Dark Green
+            210, # Light Gray
+            40,  # Red-Orange
+            110, # Teal
+            150, # Sky Blue
+            60,  # Gold
+            200, # Medium Gray
+            20,  # Bright Red
+            100, # Lime Green
+        ]
+        
+        # If we need more colors than in the palette, cycle through it
+        if num_colors <= len(base_palette):
+            return base_palette[:num_colors]
+        else:
+            # Repeat the palette as needed
+            return (base_palette * ((num_colors // len(base_palette)) + 1))[:num_colors]
 
     def _process_from_scratch(self, reduced_doc, reduced_msp, reduced_layers, process_types):
         log_debug(f"Processing reduced DXF from scratch with types: {process_types}")
