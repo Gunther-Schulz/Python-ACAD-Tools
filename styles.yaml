@@ -199,7 +199,7 @@ styles:
       lineweight: 80
     hatch:
       pattern: 'DOTS'
-      scale: 5
+      scale: 4.5
       individual_hatches: false
 
   waldLegend:
