@@ -426,6 +426,15 @@ styles:
       color: "248,215,49"
       lineweight: 60
 
+  wege:
+    layer:
+      lineweight: 13
+    hatch:
+      individual_hatches: true
+      pattern: "ANSI31"
+      scale: 1.5
+      angle: 100
+
 
   geltungsbereichHatches:
     layer:

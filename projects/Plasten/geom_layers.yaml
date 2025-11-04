@@ -166,6 +166,9 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Moor.shp"
     close: true
     sync: push
+    style:
+      layer:
+        plot: false
     operations:
       - type: dissolve
 

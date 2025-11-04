@@ -76,6 +76,42 @@ geomLayers:
   - name: Weg
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Weg.shp"
 
+  - name: Wege Input
+    dxfSource:
+      file: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/Belegungsplan/20250702_FF_Friedrichshof_4kVA Stationen_bereinigt.dxf"
+      layer: "PVcase Road"
+      entityTypes:
+        - HATCH
+
+  - name: Wege
+    sync: push
+    operations:
+      - type: copy
+        layers:
+          - Wege Input
+      - type: dissolve
+      # Buffer slightly to connect near-touching road sections into one polygon
+      - type: buffer
+        distance: 0.5
+        joinStyle: round
+        capStyle: round
+      - type: buffer
+        distance: -0.5
+        joinStyle: round
+        capStyle: round
+      - type: repair  # Fix any topology issues
+      - type: removeDegenerateSpikes
+        tolerance: 0.01            # Merge vertices closer than 1cm
+        simplifyTolerance: 0.3     # Aggressively simplify to merge collinear edge-on-edge segments
+        minSpikeLength: 0.5        # Remove spikes longer than 0.5m
+
+  - name: Wege Schraffur
+    sync: push
+    style: wege
+    applyHatch:
+      layers:
+        - Wege
+
   - name: Gebäude
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Gebäude.shp"
     sync: push
