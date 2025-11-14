@@ -1,7 +1,7 @@
 import os
 import geopandas as gpd
 from pathlib import Path
-from src.utils import log_debug, log_error, log_warning, ensure_path_exists
+from src.utils import log_debug, log_error, log_warning, log_info, ensure_path_exists
 import traceback
 from typing import Set, Optional
 
@@ -96,7 +96,7 @@ def _validate_geometry_types(geom_types: Set[str], layer_name: str) -> Optional[
 
     # Handle mixed Polygon and MultiPolygon case
     if geom_types == {'Polygon', 'MultiPolygon'}:
-        log_warning(f"Layer '{layer_name}': Mixed Polygon and MultiPolygon types found. Using Polygon (MultiPolygons will be exploded).")
+        log_info(f"Layer '{layer_name}': Mixed Polygon and MultiPolygon types found. Using Polygon (MultiPolygons will be exploded).")
         return 'Polygon'
 
     if len(geom_types) > 1:

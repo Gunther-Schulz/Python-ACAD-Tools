@@ -113,7 +113,7 @@ geomLayers:
         - Wege
 
   - name: Gebäude
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Gebäude.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Gebäude_2.shp"
     sync: push
 
   - name: Include Baufeld

@@ -1,0 +1,30 @@
+# legends:
+#   - id: "Simple Legend"
+#     title: ""  # No title as requested
+#     max_width: 80
+#     title_spacing: 0
+#     subtitle_spacing: 0
+#     group_spacing: 2
+#     group_title_spacing: 0
+#     group_subtitle_spacing: 0
+#     item_spacing: 3
+#     position:
+#       x: 308129
+#       y: 5977873
+#     itemTextStyle:
+#       color: "white"
+#       height: 3
+#       text_style: "Arial"
+#       attachment_point: MTEXT_MIDDLE_LEFT
+#     groups:
+#       - name: ""  # No group name as requested
+#         items:
+#           - name: "Wege"
+#             type: area
+#             applyHatch: true
+#             style: wege
+#           - name: "Gebäude"
+#             type: area
+#             applyHatch: true
+#             style: gebäude
+
