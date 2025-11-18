@@ -6,53 +6,53 @@ dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten
 # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/dxf_dump"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"
-reducedDxf:
-  # Copy all entity types (HATCH, DIMENSION, SPLINE, etc.) from specified layers
-  # Set to false to only copy basic geometry (LWPOLYLINE, LINE, CIRCLE, ARC, POINT, TEXT, MTEXT)
-  copyAllEntityTypes: true
-  # Automatically assign colors to layers in reduced DXF (useful when hatches are excluded)
-  autoColorLayers: true
-  # Layers that should keep their default color (typically Parcel and admin boundaries stay black)
-  keepDefaultColor:
-    - Parcel
-    - Parcel Label
-    - Flur
-    - Flur_labels
-    - Gemarkung
-    - Gemarkung_labels
-    - Gemeinde
-    - Gemeinde_labels
-    - 0-BLOCKS
-  layers:
-    - 0-BLOCKS
-    - Parcel
-    - Parcel Label
-    - Flur
-    - Flur_labels
-    - Gemarkung
-    - Gemarkung_labels
-    - Gemeinde
-    - Gemeinde_labels
-    - Wald
-    - Moor
-    - Geschütze Biotope Innenfläche
-    - Geschütze Biotope Umgrenzung
-    - FG_Unterirdisch
-    - FG_Oberirdisch
-    - Mittelspannungsleitung
-    - Gastrasse
-    - Gebäude
-    # - PV Modules
-    # - Lagerfläche
-    - AgriPV
-    - Baugrenze
-    - Geltungsbereich NW
-    - Geltungsbereich NO
-    - Geltungsbereich S
-    - Wege
-    # - EinAusfahrt Line
-    - All GFL Buffer Path
-  processFromScratch: false
+# reducedDxf:
+#   # Copy all entity types (HATCH, DIMENSION, SPLINE, etc.) from specified layers
+#   # Set to false to only copy basic geometry (LWPOLYLINE, LINE, CIRCLE, ARC, POINT, TEXT, MTEXT)
+#   copyAllEntityTypes: true
+#   # Automatically assign colors to layers in reduced DXF (useful when hatches are excluded)
+#   autoColorLayers: true
+#   # Layers that should keep their default color (typically Parcel and admin boundaries stay black)
+#   keepDefaultColor:
+#     - Parcel
+#     - Parcel Label
+#     - Flur
+#     - Flur_labels
+#     - Gemarkung
+#     - Gemarkung_labels
+#     - Gemeinde
+#     - Gemeinde_labels
+#     - 0-BLOCKS
+#   layers:
+#     - 0-BLOCKS
+#     - Parcel
+#     - Parcel Label
+#     - Flur
+#     - Flur_labels
+#     - Gemarkung
+#     - Gemarkung_labels
+#     - Gemeinde
+#     - Gemeinde_labels
+#     - Wald
+#     - Moor
+#     - Geschütze Biotope Innenfläche
+#     - Geschütze Biotope Umgrenzung
+#     - FG_Unterirdisch
+#     - FG_Oberirdisch
+#     - Mittelspannungsleitung
+#     - Gastrasse
+#     - Gebäude
+#     # - PV Modules
+#     # - Lagerfläche
+#     - AgriPV
+#     - Baugrenze
+#     - Geltungsbereich NW
+#     - Geltungsbereich NO
+#     - Geltungsbereich S
+#     - Wege
+#     # - EinAusfahrt Line
+#     - All GFL Buffer Path
+#   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
   # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers
   # Legends and viewports are processed in their entirety if included in processTypes

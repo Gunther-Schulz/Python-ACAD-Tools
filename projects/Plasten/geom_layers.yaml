@@ -321,6 +321,44 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Wege.shp"
 
   # --------------------------------------------------------------------------
+  # Böschung (Slope) Layers from External DXF - GPS Survey Lines
+  # --------------------------------------------------------------------------
+  # These layers contain GPS survey lines that sometimes have gaps.
+  # First, we load both layers separately, then merge them into a single layer,
+  # and finally apply polygonize to automatically connect closest endpoints
+  # to create closed polygons from the line segments.
+
+  - name: T--Böschung_eindeut_OK Source
+    dxfSource:
+      file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/6 - Devener Weg/Groß Plasten II (Dewener Weg)/PV Groß Plasten II_Entwurfsvermessung_2025-07-29_VB-Haff_edit.dxf"
+      layer: "T--Böschung_eindeut_OK"
+      entityTypes:
+        - LINE
+        - LWPOLYLINE
+        - POLYLINE
+
+  - name: T--Böschung_eindeut_UK Source
+    dxfSource:
+      file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/6 - Devener Weg/Groß Plasten II (Dewener Weg)/PV Groß Plasten II_Entwurfsvermessung_2025-07-29_VB-Haff_edit.dxf"
+      layer: "T--Böschung_eindeut_UK"
+      entityTypes:
+        - LINE
+        - LWPOLYLINE
+        - POLYLINE
+
+  # Combined Böschung layer (polygonized from both OK + UK sources)
+  # Note: polygonize operation collects lines from multiple source layers directly
+  # without merging them first, preserving individual line segments for proper gap closing
+  - name: T--Böschung_eindeut
+    operations:
+      - type: polygonize
+        layers:
+          - T--Böschung_eindeut_OK Source
+          - T--Böschung_eindeut_UK Source
+        # maxPolygons: 2  # Keep only the 2 largest polygons (outer boundaries)
+      - type: dissolve
+
+  # --------------------------------------------------------------------------
   # PV Module Blocks from External DXF
   # --------------------------------------------------------------------------
 
