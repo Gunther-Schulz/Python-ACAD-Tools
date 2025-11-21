@@ -306,7 +306,6 @@ geomLayers:
   - name: Böschung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Böschung.shp"
     close: true
-    sync: push
 
   # --------------------------------------------------------------------------
   # Manual Exclusions
@@ -350,6 +349,17 @@ geomLayers:
 
   - name: Wege Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Wege.shp"
+
+  - name: Zuwegung
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Zuwegung.shp"
+    sync: push
+    close: true
+    operations:
+      # Subtract manual exclusions from Zuwegung
+      - type: difference
+        layers:
+          - Exclude Geltungsbereich
+        reverseDifference: false
 
   # --------------------------------------------------------------------------
   # Böschung (Slope) Layers from External DXF - GPS Survey Lines
@@ -971,6 +981,11 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
+      # Subtract Zuwegung (access roads) from AgriPV
+      - type: difference
+        layers:
+          - Zuwegung
+        reverseDifference: false
 
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - AgriPV with land use constraints + Wege
@@ -1314,7 +1329,6 @@ geomLayers:
   # Final Wege layer showing paths outside AgriPV area
 
   - name: Wege
-    sync: push
     style: verkehrsfläche
     operations:
       - type: copy
@@ -1325,12 +1339,12 @@ geomLayers:
           - AgriPV
         reverseDifference: false
 
-  - name: Wege Schraffur
+  - name: Zuwegung Schraffur
     sync: push
     style: verkehrsfläche
     applyHatch:
       layers:
-        - Wege
+        - Zuwegung
 
   # ==========================================================================
   # SECTION 8: HATCHING LAYERS
