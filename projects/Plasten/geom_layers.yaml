@@ -976,13 +976,15 @@ geomLayers:
   # SECTION 7: FINAL GELTUNGSBEREICH - AgriPV with land use constraints + Wege
   # ==========================================================================
   # Geltungsbereich logic by region:
-  # - NW: (AgriPV Base ∪ Acker ∪ Include GB) ∩ Parcels + Wege
-  #       → Expands to cover ALL of Acker within parcels (union then intersect)
-  # - NO: (AgriPV Base ∪ Nutzungsartengrenze ∪ Include GB) ∩ Parcels + Wege
-  #       → Expands to cover ALL of Nutzungsartengrenze within parcels (union then intersect)
-  # - S:  (AgriPV Base ∪ Include GB) ∩ Acker_S ∩ Parcels
-  #       → Constrains to ONLY Acker_S areas (intersection)
-  # Result: Geltungsbereich exists where BOTH land use AND parcels allow (whichever is smaller)
+  # - NW: ((AgriPV Base ∪ Acker) ∩ Parcels ∪ Include GB) ∩ Parcels + Wege
+  #       → Expands into Acker, then adds manual inclusions (overrides land use)
+  # - NO: ((AgriPV Base ∪ Nutzungsartengrenze) ∩ Nutzung ∩ Parcels ∪ Include GB) ∩ Parcels + Wege
+  #       → Expands into Nutzungsartengrenze, then adds manual inclusions (overrides land use)
+  # - S:  ((AgriPV Base ∩ Acker_S) ∩ Parcels ∪ Include GB) ∩ Parcels
+  #       → Constrains to Acker_S, then adds manual inclusions (overrides land use)
+  # 
+  # Key: Include Geltungsbereich ALWAYS gets added, overriding land use constraints,
+  #      but the final result is ALWAYS constrained to parcel boundaries.
   # Finally, NW and NO regions merge with Wege (paths/roads) to include access routes.
 
   - name: Geltungsbereich NW Before Wege
@@ -991,8 +993,15 @@ geomLayers:
         layers:
           - AgriPV Base
           - Acker
-          - Include Geltungsbereich
       # Constrain to parcel boundaries
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+      # Add manual inclusions (overrides land use constraints, but respects parcels)
+      - type: dissolve
+        layers:
+          - Include Geltungsbereich
+      # Ensure result stays within parcels
       - type: intersection
         layers:
           - Geltungsbereich NW Base
@@ -1045,12 +1054,19 @@ geomLayers:
         layers:
           - AgriPV Base
           - Nutzungsartengrenze
-          - Include Geltungsbereich
       # Constrain to Nutzungsartengrenze boundaries first
       - type: intersection
         layers:
           - Nutzungsartengrenze
       # Then constrain to parcel boundaries
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+      # Add manual inclusions (overrides land use constraints, but respects parcels)
+      - type: dissolve
+        layers:
+          - Include Geltungsbereich
+      # Ensure result stays within parcels
       - type: intersection
         layers:
           - Geltungsbereich NO Base
@@ -1105,12 +1121,19 @@ geomLayers:
       - type: dissolve
         layers:
           - AgriPV Base
-          - Include Geltungsbereich
       # Constrain to Acker_S areas (intersection, not union)
       - type: intersection
         layers:
           - Acker_S
       # Constrain to parcel boundaries
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
+      # Add manual inclusions (overrides land use constraints, but respects parcels)
+      - type: dissolve
+        layers:
+          - Include Geltungsbereich
+      # Ensure result stays within parcels
       - type: intersection
         layers:
           - Geltungsbereich S Base
