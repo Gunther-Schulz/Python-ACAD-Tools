@@ -2,7 +2,7 @@ exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
 templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf"
-dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/25 10.24. Plasten.dxf"
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/25 11.21. Plasten.dxf"
 # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/dxf_dump"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"

@@ -39,6 +39,16 @@ geomLayers:
     close: true
     # sync: push
 
+  - name: Acker Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Acker.shp"
+    close: true
+
+  - name: Acker
+    operations:
+      - type: dissolve
+        layers:
+          - Acker Input
+
   # Input polygon layers (kept for filtering operations like filterByIntersection)
   - name: Flur Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
@@ -880,6 +890,8 @@ geomLayers:
   # --------------------------------------------------------------------------
   # AgriPV Base Region Split: Clip NO region with Nutzungsartengrenze
   # --------------------------------------------------------------------------
+  # NOTE: This AgriPV clipping is overridden at Geltungsbereich level where
+  # expansion into Nutzungsartengrenze (NO) and Acker (NW) occurs.
 
   # Extract and clip the NO region (intersects with Nutzungsartengrenze)
   - name: AgriPV Base NO Region Clipped
@@ -1012,14 +1024,27 @@ geomLayers:
         reverseDifference: false
 
   # ==========================================================================
-  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline + Wege
+  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline + Expansions + Wege
   # ==========================================================================
+  # Geltungsbereich expands beyond AgriPV into specific land use areas:
+  # - NW: Expands into Acker (agricultural land)
+  # - NO: Expands into Nutzungsartengrenze
+  # Both expansions are constrained to never exceed parcel boundaries.
+  # Finally, all regions merge with Wege (paths/roads) to include access routes.
 
   - name: Geltungsbereich NW Before Wege
     operations:
       - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+      # Expand into Acker areas (agricultural land)
+      - type: merge
+        layers:
+          - Acker
+      # Constrain expansion to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich NW Base
@@ -1072,6 +1097,14 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+      # Expand into Nutzungsartengrenze areas
+      - type: merge
+        layers:
+          - Nutzungsartengrenze
+      # Constrain expansion to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich NO Base
