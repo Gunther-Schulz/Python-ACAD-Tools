@@ -303,6 +303,11 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Gebäude.shp"
     sync: push
 
+  - name: Böschung
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Böschung.shp"
+    close: true
+    sync: push
+
   # --------------------------------------------------------------------------
   # Manual Exclusions
   # --------------------------------------------------------------------------
@@ -686,6 +691,20 @@ geomLayers:
         capStyle: round
         quadSegs: 32
 
+  # --------------------------------------------------------------------------
+  # Böschung Buffer: 20m
+  # --------------------------------------------------------------------------
+
+  - name: Böschung Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Böschung
+        distance: 20
+        joinStyle: round
+        capStyle: round
+        quadSegs: 32
+
   # ==========================================================================
   # SECTION 3: EXCLUSION ZONE AGGREGATION
   # ==========================================================================
@@ -712,6 +731,7 @@ geomLayers:
   # Note: Biotope 20m Buffer ensures:
   #       - 10m biotope clearance (planning requirement)
   #       - 20m dead zone from Geltungsbereich to Baugrenze (stricter rule)
+  # Note: Böschung 20m Buffer ensures 20m clearance from slopes/embankments
   # --------------------------------------------------------------------------
 
   - name: Baugrenze Exclusions
@@ -724,6 +744,7 @@ geomLayers:
           - Gebäude Buffer
           - Einzelbaumlinie Buffer
           - Straßenflurstückskante Buffer
+          - Böschung Buffer
           - Moor
           - Biotope 20m Buffer
       - type: dissolve
