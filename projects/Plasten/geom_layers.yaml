@@ -902,52 +902,42 @@ geomLayers:
         geometryTypes:
           - Polygon
 
-  # --------------------------------------------------------------------------
-  # AgriPV Base Region Split: Clip NO region with Nutzungsartengrenze
-  # --------------------------------------------------------------------------
-  # NOTE: This AgriPV clipping is overridden at Geltungsbereich level where
-  # expansion into Nutzungsartengrenze (NO) and Acker (NW) occurs.
-
-  # Extract and clip the NO region (intersects with Nutzungsartengrenze)
-  - name: AgriPV Base NO Region Clipped
-    operations:
-      - type: copy
-        layers:
-          - AgriPV Base Unclipped
-      - type: intersection
-        layers:
-          - Geltungsbereich NO Base
-      - type: intersection
-        layers:
-          - Nutzungsartengrenze
-
-  # Extract NW and S regions (unclipped)
-  - name: AgriPV Base Other Regions
-    operations:
-      - type: copy
-        layers:
-          - AgriPV Base Unclipped
-      - type: intersection
-        layers:
-          - Geltungsbereich NW Base
-          - Geltungsbereich S Base
-
-  # Merge clipped NO + unclipped other regions
+  # Final AgriPV Base (no land use clipping - that happens at Geltungsbereich level)
   - name: AgriPV Base
     operations:
+      - type: copy
+        layers:
+          - AgriPV Base Unclipped
+      # Clean up and add manual inclusions
+      - type: removeDegenerateSpikes
+        tolerance: 0.01
+        simplifyTolerance: 0.05
+        minSpikeLength: 0.1
+      - type: removeProtrusions
+        bufferDistance: 0.5
+        minProtrusionLength: 1.0
+      - type: removeSliversErosion
+        erosionDistance: 0.2
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
+      # Add manual inclusion areas
       - type: dissolve
         layers:
-          - AgriPV Base NO Region Clipped
-          - AgriPV Base Other Regions
+          - Include AgriPV
+      # Subtract biotope centers (but not the 10m buffer ring)
+      - type: difference
+        layers:
+          - Biotope
+        reverseDifference: false
 
   # ==========================================================================
-  # SECTION 6: AGRIPV BASE - Solar planning zone (before land use constraints)
+  # SECTION 6: FINAL AGRIPV - Combined from all Geltungsbereich regions
   # ==========================================================================
-  # AgriPV Base is used as the starting point for Geltungsbereich calculations.
-  # It will be intersected with Acker/Nutzungsartengrenze to create final Geltungsbereich.
+  # AgriPV is now simply the combined Geltungsbereich areas (NW + NO + S)
+  # This ensures AgriPV matches the actual legal planning boundaries
   
-  # Final AgriPV: Same as AgriPV Base, with inclusions and biotope handling
-  # Note: Include AgriPV areas are merged in to override constraints
   - name: AgriPV
     close: true
     sync: push
@@ -955,37 +945,11 @@ geomLayers:
       - name: WorkView
         style: agripv
     operations:
-      - type: copy
-        layers:
-          - AgriPV Base
-      # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
-      - type: removeDegenerateSpikes
-        tolerance: 0.01              # Merge vertices closer than 1cm
-        simplifyTolerance: 0.05      # Simplify with 5cm tolerance
-        minSpikeLength: 0.1          # Remove spikes thinner than 10cm
-      # Stage 2: Remove thin protrusions
-      - type: removeProtrusions
-        bufferDistance: 0.5
-        minProtrusionLength: 1.0
-      # Stage 3: Remove slivers (thin features < 0.4m wide)
-      - type: removeSliversErosion
-        erosionDistance: 0.2
-      # Stage 4: Final repair and cleanup
-      - type: repair
-        minArea: 20
-        removeEmptyGeometries: true
-        removeFailures: true
-      # Override constraints: Add manual inclusion areas
       - type: dissolve
         layers:
-          - Include AgriPV
-      # Subtract biotope centers from AgriPV (but not the 10m buffer ring)
-      # The 10m buffer ring remains in AgriPV and becomes dead zone (excluded from Baugrenze)
-      # Biotope centers will be filled back in at Geltungsbereich level (removeInteriorRings)
-      - type: difference
-        layers:
-          - Biotope
-        reverseDifference: false
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
 
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - AgriPV constrained by land use + Wege
@@ -1001,7 +965,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - AgriPV
+          - AgriPV Base
       # Constrain to Acker areas (agricultural land)
       - type: intersection
         layers:
@@ -1061,7 +1025,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - AgriPV
+          - AgriPV Base
       # Constrain to Nutzungsartengrenze areas
       - type: intersection
         layers:
@@ -1124,7 +1088,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - AgriPV
+          - AgriPV Base
       # Constrain to Acker_S areas (agricultural land)
       - type: intersection
         layers:
