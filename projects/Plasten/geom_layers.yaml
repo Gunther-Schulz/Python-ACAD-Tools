@@ -49,6 +49,16 @@ geomLayers:
         layers:
           - Acker Input
 
+  - name: Acker_S Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Acker_S.shp"
+    close: true
+
+  - name: Acker_S
+    operations:
+      - type: dissolve
+        layers:
+          - Acker_S Input
+
   # Input polygon layers (kept for filtering operations like filterByIntersection)
   - name: Flur Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
@@ -850,12 +860,12 @@ geomLayers:
           # - Wege Filtered S  # South excluded
 
   # ==========================================================================
-  # SECTION 5: AGRIPV CALCULATION
+  # SECTION 5: AGRIPV BASE CALCULATION
   # ==========================================================================
-  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → constrain to 20m from Baugrenze
-  # The -20/+20 buffer trick ensures Baugrenze can reach all areas of AgriPV
-  # while maintaining geometric character with chamfered corners.
-  # Finally, AgriPV is trimmed to ensure it's always within 20m of Baugrenze.
+  # AgriPV Base = (Parcels - Hard Exclusions) → -20m mitre → +20m mitre
+  # The -20/+20 buffer trick ensures sharp corners while maintaining geometric character.
+  # This base layer is then intersected with land use constraints (Acker/Nutzungsartengrenze)
+  # at the Geltungsbereich level to create the final legal planning boundaries.
 
   # --------------------------------------------------------------------------
   # AgriPV Base: Initial solar planning zone (before 20m constraint)
@@ -931,59 +941,13 @@ geomLayers:
           - AgriPV Base Other Regions
 
   # ==========================================================================
-  # SECTION 6: BAUGRENZE CALCULATION
+  # SECTION 6: AGRIPV BASE - Solar planning zone (before land use constraints)
   # ==========================================================================
-  # Baugrenze = AgriPV Base - 20m inset, then subtract ALL Baugrenze exclusion zones
-
-  - name: Baugrenze
-    sync: push
-    style: baugrenze
-    linetypeScale: 0.5
-    linetypeGeneration: true
-    close: true
-    operations:
-      # Start with -20m inset from AgriPV Base (which already has NO region clipped)
-      - type: buffer
-        layers:
-          - AgriPV Base
-        distance: -20
-        joinStyle: mitre
-        mitreLimit: 1.0  # Sharp corners where possible, bevels to maintain ≥20m minimum
-        quadSegs: 32
-      # Subtract ALL Baugrenze exclusion zones (utilities, roads, trees, buildings, Moor)
-      - type: difference
-        layers:
-          - Baugrenze Exclusions
-          - Exclude Baugrenze
-        reverseDifference: false
-
-  - name: Baugrenze 2
-    sync: push
-    style: baugrenze_2
-    close: true
-    operations:
-      - type: buffer
-        layers:
-          - Baugrenze
-        distance: -0.4
-        joinStyle: mitre
-
-  # --------------------------------------------------------------------------
-  # AgriPV 20m Constraint: Trim AgriPV to ensure 20m distance to Baugrenze
-  # --------------------------------------------------------------------------
-
-  # Buffer Baugrenze by +20m to create the valid AgriPV envelope
-  - name: Baugrenze 20m Envelope
-    operations:
-      - type: buffer
-        layers:
-          - Baugrenze
-        distance: 20
-        joinStyle: mitre
-        mitreLimit: 2.9  # Allows mitre extension up to 30m (1.5 × 20m)
-
-  # Final AgriPV: Constrained to be within 20m of Baugrenze
-  # Note: Include AgriPV areas are merged in to override the 20m rule
+  # AgriPV Base is used as the starting point for Geltungsbereich calculations.
+  # It will be intersected with Acker/Nutzungsartengrenze to create final Geltungsbereich.
+  
+  # Final AgriPV: Same as AgriPV Base, with inclusions and biotope handling
+  # Note: Include AgriPV areas are merged in to override constraints
   - name: AgriPV
     close: true
     sync: push
@@ -994,10 +958,6 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV Base
-      # Trim to areas within 20m of Baugrenze
-      - type: intersection
-        layers:
-          - Baugrenze 20m Envelope
       # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
       - type: removeDegenerateSpikes
         tolerance: 0.01              # Merge vertices closer than 1cm
@@ -1015,7 +975,7 @@ geomLayers:
         minArea: 20
         removeEmptyGeometries: true
         removeFailures: true
-      # Override 20m rule: Add manual inclusion areas
+      # Override constraints: Add manual inclusion areas
       - type: dissolve
         layers:
           - Include AgriPV
@@ -1028,28 +988,29 @@ geomLayers:
         reverseDifference: false
 
   # ==========================================================================
-  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline + Expansions + Wege
+  # SECTION 7: FINAL GELTUNGSBEREICH - AgriPV constrained by land use + Wege
   # ==========================================================================
-  # Geltungsbereich expands beyond AgriPV into specific land use areas:
-  # - NW: Expands into Acker (agricultural land)
-  # - NO: Expands into Nutzungsartengrenze
-  # Both expansions are constrained to never exceed parcel boundaries.
-  # Finally, all regions merge with Wege (paths/roads) to include access routes.
+  # Geltungsbereich is the intersection of AgriPV with specific land use areas:
+  # - NW: AgriPV ∩ Acker (agricultural land) ∩ Parcels
+  # - NO: AgriPV ∩ Nutzungsartengrenze ∩ Parcels
+  # - S:  AgriPV ∩ Acker_S ∩ Parcels
+  # Manual inclusions (Include Geltungsbereich) can override these constraints.
+  # Finally, NW and NO regions merge with Wege (paths/roads) to include access routes.
 
   - name: Geltungsbereich NW Before Wege
     operations:
       - type: copy
         layers:
           - AgriPV
+      # Constrain to Acker areas (agricultural land)
       - type: intersection
         layers:
-          - Geltungsbereich NW Base
-      # Expand into Acker areas (agricultural land) and manual inclusions
+          - Acker
+      # Add manual inclusions
       - type: dissolve
         layers:
-          - Acker
           - Include Geltungsbereich
-      # Constrain expansion to parcel boundaries
+      # Constrain to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich NW Base
@@ -1101,15 +1062,15 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV
+      # Constrain to Nutzungsartengrenze areas
       - type: intersection
         layers:
-          - Geltungsbereich NO Base
-      # Expand into Nutzungsartengrenze areas and manual inclusions
+          - Nutzungsartengrenze
+      # Add manual inclusions
       - type: dissolve
         layers:
-          - Nutzungsartengrenze
           - Include Geltungsbereich
-      # Constrain expansion to parcel boundaries
+      # Constrain to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich NO Base
@@ -1164,9 +1125,10 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV
+      # Constrain to Acker_S areas (agricultural land)
       - type: intersection
         layers:
-          - Geltungsbereich S Base
+          - Acker_S
       # Add manual inclusions
       - type: dissolve
         layers:
@@ -1194,6 +1156,54 @@ geomLayers:
         minArea: 20
         removeEmptyGeometries: true
         removeFailures: true
+
+  # ==========================================================================
+  # SECTION 6.5: BAUGRENZE CALCULATION
+  # ==========================================================================
+  # Baugrenze = (Geltungsbereich Before Wege layers) -20m, minus exclusions
+  # This ensures 20m distance from Geltungsbereich boundary to Baugrenze
+
+  # Combined Geltungsbereich Before Wege (all regions for Baugrenze calculation)
+  - name: Geltungsbereich All Regions Before Wege
+    operations:
+      - type: dissolve
+        layers:
+          - Geltungsbereich NW Before Wege
+          - Geltungsbereich NO Before Wege
+          - Geltungsbereich S
+
+  - name: Baugrenze
+    sync: push
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      # Start with -20m inset from combined Geltungsbereich areas
+      - type: buffer
+        layers:
+          - Geltungsbereich All Regions Before Wege
+        distance: -20
+        joinStyle: mitre
+        mitreLimit: 1.0  # Sharp corners where possible, bevels to maintain ≥20m minimum
+        quadSegs: 32
+      # Subtract ALL Baugrenze exclusion zones (utilities, roads, trees, buildings, Moor)
+      - type: difference
+        layers:
+          - Baugrenze Exclusions
+          - Exclude Baugrenze
+        reverseDifference: false
+
+  - name: Baugrenze 2
+    sync: push
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+        joinStyle: mitre
 
   # --------------------------------------------------------------------------
   # Geltungsbereich +2m Styling Variants
