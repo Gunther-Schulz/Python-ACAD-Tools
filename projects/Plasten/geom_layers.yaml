@@ -314,6 +314,12 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Include AgriPV.shp"
     close: true
 
+  - name: Include Geltungsbereich
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Include Geltungsbereich.shp"
+    close: true
+    operations:
+      - type: dissolve
+
   # --------------------------------------------------------------------------
   # Infrastructure Inputs
   # --------------------------------------------------------------------------
@@ -469,12 +475,11 @@ geomLayers:
     sync: push
     style: lagerfläche
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - Lagerfläche I Source
           - Lagerfläche II Source
           - Lagerfläche Süd Source
-      - type: dissolve
 
   - name: Lagerfläche Schraffur
     sync: push
@@ -582,7 +587,7 @@ geomLayers:
 
   - name: FG Line
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - FG_Unterirdisch
           - FG_Oberirdisch
@@ -838,7 +843,7 @@ geomLayers:
   # Combined Wege from all regions (for final output layer)
   - name: Wege Filtered
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - Wege Filtered NW
           - Wege Filtered NO
@@ -920,7 +925,7 @@ geomLayers:
   # Merge clipped NO + unclipped other regions
   - name: AgriPV Base
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - AgriPV Base NO Region Clipped
           - AgriPV Base Other Regions
@@ -1011,10 +1016,9 @@ geomLayers:
         removeEmptyGeometries: true
         removeFailures: true
       # Override 20m rule: Add manual inclusion areas
-      - type: merge
+      - type: dissolve
         layers:
           - Include AgriPV
-      - type: dissolve
       # Subtract biotope centers from AgriPV (but not the 10m buffer ring)
       # The 10m buffer ring remains in AgriPV and becomes dead zone (excluded from Baugrenze)
       # Biotope centers will be filled back in at Geltungsbereich level (removeInteriorRings)
@@ -1040,10 +1044,11 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich NW Base
-      # Expand into Acker areas (agricultural land)
-      - type: merge
+      # Expand into Acker areas (agricultural land) and manual inclusions
+      - type: dissolve
         layers:
           - Acker
+          - Include Geltungsbereich
       # Constrain expansion to parcel boundaries
       - type: intersection
         layers:
@@ -1072,11 +1077,10 @@ geomLayers:
     sync: push
     style: geltungsbereich
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - Geltungsbereich NW Before Wege
           - Wege Filtered NW
-      - type: dissolve
       # Subtract manual exclusions after merging with Wege
       - type: difference
         layers:
@@ -1100,10 +1104,11 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich NO Base
-      # Expand into Nutzungsartengrenze areas
-      - type: merge
+      # Expand into Nutzungsartengrenze areas and manual inclusions
+      - type: dissolve
         layers:
           - Nutzungsartengrenze
+          - Include Geltungsbereich
       # Constrain expansion to parcel boundaries
       - type: intersection
         layers:
@@ -1132,11 +1137,10 @@ geomLayers:
     sync: push
     style: geltungsbereich
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - Geltungsbereich NO Before Wege
           - Wege Filtered NO
-      - type: dissolve
       # Subtract manual exclusions after merging with Wege
       - type: difference
         layers:
@@ -1160,6 +1164,14 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
+      # Add manual inclusions
+      - type: dissolve
+        layers:
+          - Include Geltungsbereich
+      # Constrain to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich S Base
@@ -1281,11 +1293,10 @@ geomLayers:
     sync: push
     style: gflPath
     operations:
-      - type: merge
+      - type: dissolve
         layers:
           - FG Buffer Path
           - Gastrasse Buffer Path
-      - type: dissolve
 
   # ==========================================================================
   # SECTION 7.5: FINAL WEGE OUTPUT
