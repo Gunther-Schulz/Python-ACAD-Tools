@@ -975,13 +975,14 @@ geomLayers:
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - AgriPV with land use constraints + Wege
   # ==========================================================================
-  # Geltungsbereich logic differs by region:
+  # Geltungsbereich logic by region:
   # - NW: (AgriPV Base ∪ Acker ∪ Include GB) ∩ Parcels + Wege
-  #       → Expands to cover ALL of Acker within parcels
+  #       → Expands to cover ALL of Acker within parcels (union then intersect)
   # - NO: (AgriPV Base ∪ Nutzungsartengrenze ∪ Include GB) ∩ Parcels + Wege
-  #       → Expands to cover ALL of Nutzungsartengrenze within parcels
+  #       → Expands to cover ALL of Nutzungsartengrenze within parcels (union then intersect)
   # - S:  (AgriPV Base ∪ Include GB) ∩ Acker_S ∩ Parcels
-  #       → Constrains to ONLY Acker_S areas (intersection, not expansion)
+  #       → Constrains to ONLY Acker_S areas (intersection)
+  # Result: Geltungsbereich exists where BOTH land use AND parcels allow (whichever is smaller)
   # Finally, NW and NO regions merge with Wege (paths/roads) to include access routes.
 
   - name: Geltungsbereich NW Before Wege
@@ -1045,7 +1046,11 @@ geomLayers:
           - AgriPV Base
           - Nutzungsartengrenze
           - Include Geltungsbereich
-      # Constrain to parcel boundaries
+      # Constrain to Nutzungsartengrenze boundaries first
+      - type: intersection
+        layers:
+          - Nutzungsartengrenze
+      # Then constrain to parcel boundaries
       - type: intersection
         layers:
           - Geltungsbereich NO Base
