@@ -181,6 +181,13 @@ geomLayers:
         style: waldWorkView
     operations:
       - type: dissolve
+      # Subtract land use areas (keep only Wald outside agricultural zones)
+      - type: difference
+        layers:
+          - Acker
+          - Acker_S
+          - Nutzungsartengrenze
+        reverseDifference: false
 
   - name: Moor
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Moor.shp"

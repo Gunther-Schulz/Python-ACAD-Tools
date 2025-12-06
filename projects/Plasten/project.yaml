@@ -33,7 +33,7 @@ reducedDxf:
     - Gemarkung_labels
     - Gemeinde
     - Gemeinde_labels
-    - Wald
+    # - Wald
     - Moor
     - Geschütze Biotope Innenfläche
     - Geschütze Biotope Umgrenzung
