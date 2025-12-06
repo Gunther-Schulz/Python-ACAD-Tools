@@ -561,36 +561,16 @@ geomLayers:
         quadSegs: 32
 
   # --------------------------------------------------------------------------
-  # Biotope Buffers: 10m clearance (general rule) + 20m dead zone (stricter)
+  # Biotope Buffers: 10m clearance for Baugrenze
   # --------------------------------------------------------------------------
-  # Planning rules:
-  #   1. Biotope clearance: 10m buffer from biotope edges (general requirement)
-  #   2. Dead zone rule: 20m minimum from Geltungsbereich to Baugrenze
-  # Since 20m > 10m, we apply the 20m buffer to satisfy both requirements.
+  # Planning rule: 10m buffer from biotope edges (Baugrenze clearance requirement)
 
-  # 10m buffer: Documents the general biotope clearance requirement
-  # NOTE: Not used in calculations - kept for documentation only
-  # The 20m buffer below is actually applied (satisfies both 10m and 20m rules)
-  - name: Biotope 10m Buffer
+  - name: Biotope 10m Buffer Applied
     operations:
       - type: buffer
         layers:
           - Biotope
         distance: 10
-        joinStyle: round
-        capStyle: round
-        quadSegs: 32
-
-  # 20m buffer: Applied to Baugrenze Exclusions
-  # Satisfies both:
-  #   - 10m biotope clearance requirement (20m > 10m)
-  #   - 20m dead zone requirement (Geltungsbereich to Baugrenze distance)
-  - name: Biotope 20m Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Biotope
-        distance: 20
         joinStyle: round
         capStyle: round
         quadSegs: 32
@@ -753,9 +733,7 @@ geomLayers:
   # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
   # Note: Waldabstand (30m) ensures Baugrenze stays 30m from forest
   # Note: Moor added as soft exclusion (0m buffer - Baugrenze stops at edge)
-  # Note: Biotope 20m Buffer ensures:
-  #       - 10m biotope clearance (planning requirement)
-  #       - 20m dead zone from Geltungsbereich to Baugrenze (stricter rule)
+  # Note: Biotope 10m Buffer ensures 10m clearance from protected biotopes
   # Note: Böschung 20m Buffer ensures 20m clearance from slopes/embankments
   # --------------------------------------------------------------------------
 
@@ -772,7 +750,7 @@ geomLayers:
           - Straßenflurstückskante Buffer
           - Böschung Buffer
           - Moor
-          - Biotope 20m Buffer
+          - Biotope 10m Buffer Applied
       - type: dissolve
 
   # ==========================================================================
