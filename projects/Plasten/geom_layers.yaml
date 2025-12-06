@@ -172,15 +172,23 @@ geomLayers:
   # Hard Exclusions - Features that exclude BOTH AgriPV and Baugrenze
   # --------------------------------------------------------------------------
 
-  - name: Wald
+  # Wald Input: Original forest data (used for buffer calculations)
+  - name: Wald Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
+    operations:
+      - type: dissolve
+
+  # Wald: Display layer with land use areas subtracted (for visual clarity)
+  - name: Wald
     close: true
     sync: push
     viewports:
       - name: WorkView
         style: waldWorkView
     operations:
-      - type: dissolve
+      - type: copy
+        layers:
+          - Wald Input
       # Subtract land use areas (keep only Wald outside agricultural zones)
       - type: difference
         layers:
@@ -530,23 +538,23 @@ geomLayers:
   # Wald Buffers: 10m for AgriPV exclusion, 30m for Baugrenze buffer zone
   # --------------------------------------------------------------------------
 
-  # 10m buffer: AgriPV must stay this far from Wald
+  # 10m buffer: AgriPV must stay this far from Wald (calculated from ORIGINAL Wald)
   - name: Wald 10m Buffer
     operations:
       - type: buffer
         layers:
-          - Wald
+          - Wald Input
         distance: 10
         joinStyle: round  # Use round joins to maintain true 10m distance at corners
         capStyle: round
         quadSegs: 32
 
-  # 30m buffer: Used for Baugrenze calculation (creates 20m dead zone in AgriPV)
+  # 30m buffer: Used for Baugrenze calculation (calculated from ORIGINAL Wald)
   - name: Waldabstand
     operations:
       - type: buffer
         layers:
-          - Wald
+          - Wald Input
         distance: 30
         joinStyle: round
         capStyle: round
@@ -743,7 +751,7 @@ geomLayers:
 
   # --------------------------------------------------------------------------
   # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
-  # Note: Waldabstand NOT included - the 10m gap + 20m inset = 30m from forest already
+  # Note: Waldabstand (30m) ensures Baugrenze stays 30m from forest
   # Note: Moor added as soft exclusion (0m buffer - Baugrenze stops at edge)
   # Note: Biotope 20m Buffer ensures:
   #       - 10m biotope clearance (planning requirement)
@@ -755,6 +763,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
+          - Waldabstand
           - FG Buffer
           - Gastrasse Buffer
           - Mittelspannungsleitung Buffer
