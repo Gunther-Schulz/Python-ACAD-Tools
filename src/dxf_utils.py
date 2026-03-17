@@ -430,17 +430,6 @@ def remove_entities_by_layer(msp, layer_names, script_identifier, skip_entity_na
     if skipped_count > 0:
         log_info(f"Protected {skipped_count} entities from deletion")
 
-    # Try to perform cleanup operations
-    try:
-        doc.entitydb.purge()
-    except Exception as e:
-        log_warning(f"Database purge failed: {str(e)}")
-
-    try:
-        doc.audit()
-    except Exception as e:
-        log_warning(f"Document audit failed (this is not critical): {str(e)}")
-
     return delete_count
 
 def remove_entities_by_layer_optimized(msp, layer_names, script_identifier):
@@ -1181,6 +1170,7 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         block_ref.dxf.layer = layer_name
         block_ref.dxf.xscale = scale
         block_ref.dxf.yscale = scale
+        block_ref.dxf.zscale = scale
         block_ref.dxf.rotation = rotation
         # Note: XDATA attachment is handled by the caller to ensure proper entity naming
         log_debug(f"Successfully created block reference for '{block_name}' on layer '{layer_name}'")

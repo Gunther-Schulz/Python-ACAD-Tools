@@ -188,6 +188,7 @@ class LegendCreator:
         # Get the processed styles
         hatch_style = self.get_style(style.get('hatch', {}))
         layer_style = self.get_style(style.get('layer', {}))
+        entity_style = self.get_style(style.get('entity', {}))
         rectangle_style = self.get_style(item.get('rectangleStyle', {}))
 
         block_symbol = item.get('blockSymbol')
@@ -205,7 +206,7 @@ class LegendCreator:
         if item_type == 'area':
             item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale, block_symbol_rotation)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation, entity_style)
         elif item_type == 'diagonal_line':
             item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale, block_symbol_rotation)
         elif item_type == 'empty':
@@ -357,13 +358,18 @@ class LegendCreator:
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0, block_symbol_rotation=0.0, entity_style=None):
         entities = []
 
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
         self.apply_style(line, layer_style)
+        if entity_style and isinstance(entity_style, dict):
+            if 'linetypeScale' in entity_style:
+                line.dxf.ltscale = entity_style['linetypeScale']
+            if 'linetypeGeneration' in entity_style:
+                line.dxf.flags = line.dxf.flags | 128 if entity_style['linetypeGeneration'] else line.dxf.flags
         self.attach_custom_data(line)
         entities.append(line)
 

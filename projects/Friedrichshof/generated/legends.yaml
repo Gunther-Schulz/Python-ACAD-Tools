@@ -1,31 +1,184 @@
-# legends:
-#   - id: "Simple Legend"
-#     title: ""  # No title as requested
-#     max_width: 80
-#     title_spacing: 0
-#     subtitle_spacing: 0
-#     group_spacing: 2
-#     group_title_spacing: 0
-#     group_subtitle_spacing: 0
-#     item_spacing: 3
-#     position:
-#       x: 308129
-#       y: 5977873
-#     itemTextStyle:
-#       color: "white"
-#       height: 3
-#       text_style: "Arial"
-#       attachment_point: MTEXT_MIDDLE_LEFT
-#     groups:
-#       - name: ""  # No group name as requested
-#         items:
-#           - name: "Wege"
-#             type: area
-#             applyHatch: true
-#             style: wege
-#           - name: "Gebäude"
-#             type: area
-#             applyHatch: true
-#             style: gebäude
+legends:
+  - id: "Main Legend"
+    title: "PLANZEICHEN"
+    subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+    max_width: 160
+    item_width: 20
+    item_height: 9
+    title_spacing: 0
+    subtitle_spacing: 4
+    group_spacing: 4
+    group_title_spacing: 2
+    group_subtitle_spacing: 3
+    item_spacing: 4
+    position:
+      x: 308118
+      y: 5978397
+    titleTextStyle:
+      height: 4
+      color: "white"
+      text_style: "Arial"
+    titleSubtitleStyle:
+      height: 2
+      color: "white"
+      text_style: "Arial"
+    groupTextStyle:
+      color: "white"
+      height: 3
+      text_style: "Arial"
+    subtitleTextStyle:
+      color: "white"
+      height: 2
+      text_style: "Arial"
+    itemTextStyle:
+      color: "white"
+      height: 2
+      text_style: "Arial"
+      attachment_point: MTEXT_MIDDLE_LEFT
+    groups:
+      - name: "Art der Baulichen Nutzung"
+        sync: push
+        subtitle: "(§ 5 Abs. 2 Nr.1, § 9 Nr. 1 BauGB, § 16 BauNVO)"
+        items:
+          - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO)\nZweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            type: area
+            applyHatch: true
+            style: baufeld
+            blockSymbol: "Sonstiges Sondergebiet EBS"
+            blockSymbolScale: 1
 
+      - name: "Maß der baulichen Nutzung"
+        sync: push
+        subtitle: "(§ 5 Abs. 2 Nr.1, § 9 Nr. 1 BauGB, § 16 BauNVO)"
+        items:
+          - name: "Grundflächenzahl"
+            type: empty
+            blockSymbol: "GRZ"
+            blockSymbolScale: 1
+          - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+            type: empty
+            blockSymbol: "Contours"
+            blockSymbolScale: 0.7
 
+      - name: "Bauweise, Baulinien, Baugrenzen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 2 BauGB, §§ 22 und 23 BauNVO)"
+        items:
+          - name: "Baugrenze"
+            type: empty
+            blockSymbol: "Baugrenze"
+            blockSymbolScale: 0.7
+
+      - name: "Verkehrsflächen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Ein- und Ausfahrt"
+            type: empty
+            blockSymbol: "EinAusfahrt"
+
+      - name: "Flächen für Versorgungsanlagen, für die Abfallentsorgung und Abwasserbeseitigung sowie für Ablagerungen; Anlagen, Einrichtungen und sonstige Maßnahmen, die dem Klimawandel entgegenwirken"
+        sync: push
+        subtitle: "(§ 5 Absatz 2 Nummer 2 Buchstabe b, Nummer 4 und Absatz 4, § 9 Absatz 1 Nummer 12, 14 und Absatz 6 BauGB)"
+        items:
+          - name: "Ablagerung"
+            type: area
+            applyHatch: true
+            style: ablagerungen
+
+      - name: "Grünflächen"
+        sync: push
+        subtitle: "(§ 5 Abs. 2 Nr. 5, § 9 Abs. 1 Nr. 15 und Abs. 6 BauGB)"
+        items:
+          - name: "private Grünflächen"
+            type: area
+            applyHatch: true
+            style: grünfläche
+
+      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+        sync: push
+        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs 1 Nr. 20, 25 und Abs. 6 BauGB) in Verbindung mit § 1a Abs.3 BauGB"
+        items:
+          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+            type: empty
+            blockSymbol: "Schutzflächeumgrenzung"
+            blockSymbolScale: 0.5
+
+      - name: "Sonstige Planzeichen"
+        sync: push
+        items:
+          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplanes"
+            subtitle: "(§ 9 Abs. 7 BauGB)"
+            type: area
+            rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung unterirdisch Legend"
+            blockSymbolScale: 1
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung oberirdisch Legend"
+            blockSymbolScale: 1
+
+      - name: "Darstellung ohne Normcharakter"
+        sync: push
+        items:
+          - name: "Bemaßung in Meter"
+            type: empty
+            blockSymbol: "Bemassung2"
+            blockSymbolScale: 0.6
+          - name: "Gemarkungsgrenze"
+            type: line
+            style: gemarkungsgrenze
+          - name: "Flurgrenze"
+            type: line
+            style: flurgrenze
+          - name: "Flurstücksnummer\nFlurstücksgrenze"
+            type: empty
+            blockSymbol: "Parcel"
+            blockSymbolScale: 0.8
+
+      - name: "Nachrichtliche Übernahme"
+        sync: push
+        items:
+          - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+            type: area
+            rectangleStyle: gesGeschuetzesBiotop
+            blockSymbol: "Gesetzlich geschütztes Biotop"
+            blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum erhalten"
+          - name: "Wald"
+            type: area
+            style:
+              preset: waldLegend
+              hatch:
+                scale: 1.5
+            applyHatch: true
+          - name: "Gebäude - Bestand"
+            type: area
+            applyHatch: true
+            style: gebäudeLegend
+          - name: "CEF-Fläche"
+            type: area
+            rectangleStyle: cef
+          - name: "vorläufige Modulbelegungsfläche"
+            type: empty
+            blockSymbol: "vorläufige Modulbelegungsfläche"
+          - name: "vorläufige Löschwasserkissen"
+            type: empty
+            blockSymbol: "LöchwasserkissenColor"
+          - name: "vorläufige Standorte für die Trafostationen"
+            type: empty
+            blockSymbol: "Trafostation"
+          - name: "Platzreserve für Batteriespeicher 10 MW/30 MWh"
+            type: area
+            applyHatch: true
+            style: batteriespeicherLegend
+          - name: "vorläufige Wegeführung"
+            type: area
+            applyHatch: true
+            style: wege

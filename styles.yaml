@@ -115,6 +115,8 @@ styles:
       locked: true
       linetype: "ACAD_ISO14W100"
       lineweight: 50
+    entity:
+      linetypeScale: 0.5
     text:
       height: 5
       font: "Arial"
@@ -131,6 +133,8 @@ styles:
       locked: true
       linetype: "ACAD_ISO12W100"
       lineweight: 50
+    entity:
+      linetypeScale: 0.5
     text:
       height: 5
       font: "Arial"
@@ -226,6 +230,19 @@ styles:
       angle: 0
       individual_hatches: true
 
+  gebäudeLegend:
+    hatch:
+      pattern: "ANSI37"
+      scale: 1
+      angle: 0
+      individual_hatches: false
+
+  batteriespeicherLegend:
+    hatch:
+      pattern: "ANSI32"
+      scale: 0.5
+      angle: 0
+      individual_hatches: false
 
 # Urban Planning
 # --------------
