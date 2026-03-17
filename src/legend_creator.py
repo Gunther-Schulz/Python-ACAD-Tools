@@ -316,9 +316,19 @@ class LegendCreator:
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
 
+            # Build hatch style with fallback to layer properties for color/transparency.
+            # In the drawing, hatches inherit these via BYLAYER from the styled layer.
+            # Legend hatches sit on a generic Legend_* layer, so we need explicit values.
+            effective_hatch_style = dict(hatch_style) if hatch_style else {}
+            if layer_style and isinstance(layer_style, dict):
+                if 'transparency' not in effective_hatch_style and 'transparency' in layer_style:
+                    effective_hatch_style['transparency'] = layer_style['transparency']
+                if 'color' in layer_style and effective_hatch_style.get('color') in (None, 'BYLAYER'):
+                    effective_hatch_style['color'] = layer_style['color']
+
             # Create a layer_info-like structure for the style manager
             legend_layer_info = {
-                'style': {'hatch': hatch_style}  # Match the structure expected by style_manager
+                'style': {'hatch': effective_hatch_style}
             }
 
             # Use the same style processing as regular geometry
