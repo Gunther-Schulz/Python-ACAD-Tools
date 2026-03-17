@@ -3,6 +3,9 @@
 
 *.dxf
 
+# Python BytesIO/object artifacts accidentally written as files
+<_io.*
+
 *.pyc
 
 *.log
