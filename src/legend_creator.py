@@ -290,7 +290,19 @@ class LegendCreator:
         vertical_offset = self.current_y - combined_bbox.extmax.y
         for entity in item_entities + entities:
             if entity:
-                entity.translate(0, vertical_offset, 0)
+                if entity.dxftype() == 'HATCH':
+                    # translate() corrupts hatch pattern angles via OCS transform.
+                    # Move boundary paths directly instead.
+                    for path in entity.paths:
+                        if hasattr(path, 'vertices'):
+                            path.vertices = [(v[0], v[1] + vertical_offset) + v[2:] for v in path.vertices]
+                    try:
+                        v0 = entity.paths[0].vertices[0]
+                        entity.set_seed_points([(v0[0], v0[1])])
+                    except Exception:
+                        pass
+                else:
+                    entity.translate(0, vertical_offset, 0)
 
         total_height = combined_bbox.size.y
 

@@ -450,7 +450,7 @@ styles:
       individual_hatches: true
       pattern: "ANSI31"
       scale: 1.5
-      angle: 100
+      angle: 145
 
 
   geltungsbereichHatches:

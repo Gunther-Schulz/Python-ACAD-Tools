@@ -82,9 +82,9 @@ legends:
         subtitle: "(§ 5 Absatz 2 Nummer 2 Buchstabe b, Nummer 4 und Absatz 4, § 9 Absatz 1 Nummer 12, 14 und Absatz 6 BauGB)"
         items:
           - name: "Ablagerung"
-            type: area
-            applyHatch: true
-            style: ablagerungen
+            type: empty
+            blockSymbol: "Ablagerung"
+            blockSymbolScale: 1
 
       - name: "Grünflächen"
         sync: push
@@ -173,7 +173,7 @@ legends:
             blockSymbol: "LöchwasserkissenColor"
           - name: "vorläufige Standorte für die Trafostationen"
             type: empty
-            blockSymbol: "Trafostation"
+            blockSymbol: "TravostationLegend"
           - name: "Platzreserve für Batteriespeicher 10 MW/30 MWh"
             type: area
             applyHatch: true

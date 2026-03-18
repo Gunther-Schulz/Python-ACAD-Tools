@@ -61,17 +61,16 @@ geomLayers:
       #   capStyle: flat
 
   - name: Ablagerungsfläche
-    sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Ablagerungsfläche.shp"
     operations:
       - type: dissolve
 
-  - name: Ablagerungsfläche Schraffur
-    sync: push
-    style: ablagerungen
-    applyHatch:
-      layers:
-        - Ablagerungsfläche
+  # - name: Ablagerungsfläche Schraffur
+  #   sync: push
+  #   style: ablagerungen
+  #   applyHatch:
+  #     layers:
+  #       - Ablagerungsfläche
 
   - name: Weg
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Weg.shp"
