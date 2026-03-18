@@ -55,10 +55,6 @@ legends:
             type: empty
             blockSymbol: "GRZ"
             blockSymbolScale: 1
-          - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
-            type: empty
-            blockSymbol: "Contours"
-            blockSymbolScale: 0.7
 
       - name: "Bauweise, Baulinien, Baugrenzen"
         sync: push
@@ -139,6 +135,10 @@ legends:
             type: empty
             blockSymbol: "Parcel"
             blockSymbolScale: 0.8
+          - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+            type: empty
+            blockSymbol: "Contours"
+            blockSymbolScale: 0.7
 
       - name: "Nachrichtliche Übernahme"
         sync: push
