@@ -219,12 +219,6 @@ class ProjectLoader:
                         log_debug(f"Expanded hatch property on '{layer['name']}' into layer '{hatch_layer_name}'")
         geom_layers['geomLayers'] = expanded_layers
 
-        # Load reducedDxf from separate file if it exists, otherwise use project.yaml
-        reduced_dxf_config = self.load_yaml_file('reduced_dxf.yaml', required=False) or {}
-        if 'reducedDxf' in reduced_dxf_config:
-            main_settings['reducedDxf'] = reduced_dxf_config['reducedDxf']
-            log_debug("Loaded reducedDxf config from reduced_dxf.yaml")
-
         # Merge all settings
         self.project_settings = {
             **main_settings,
