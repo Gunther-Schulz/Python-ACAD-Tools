@@ -3,7 +3,9 @@ from shapely.geometry import LineString, MultiLineString, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 import math
+from src.operations.registry import register_operation
 
+@register_operation('directionalLine', description='Add direction indicators to lines')
 def create_directional_line_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating directional line layer: {layer_name}")
 

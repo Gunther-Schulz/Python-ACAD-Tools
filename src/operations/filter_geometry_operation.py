@@ -2,7 +2,9 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, explode_to_singlepart
+from src.operations.registry import register_operation
 
+@register_operation('filterGeometry', description='Filter by geometry type or size')
 def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating filtered geometry layer: {layer_name}")
 

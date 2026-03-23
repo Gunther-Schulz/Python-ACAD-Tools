@@ -2,7 +2,9 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import ensure_geodataframe
+from src.operations.registry import register_operation
 
+@register_operation('simplifySlivers', description='Simplify boundaries to remove slivers')
 def create_simplify_slivers_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Conservative sliver removal using Douglas-Peucker simplification.

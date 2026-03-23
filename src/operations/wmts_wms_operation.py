@@ -6,7 +6,10 @@ from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process
 from owslib.wmts import WebMapTileService
 from src.project_loader import ProjectLoader
 from src.operations.common_operations import *
+from src.operations.registry import register_operation
 
+@register_operation('wmts', needs_project_loader=True, description='Add WMTS tile layer')
+@register_operation('wms', needs_project_loader=True, description='Add WMS layer')
 def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, operation, project_loader):
     log_debug(f"Processing WMTS/WMS layer: {layer_name}")
 

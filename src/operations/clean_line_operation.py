@@ -14,8 +14,10 @@ from shapely.geometry import LineString, MultiLineString, Point
 import numpy as np
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import ensure_geodataframe
+from src.operations.registry import register_operation
 
 
+@register_operation('cleanLine', description='Remove degenerate vertices and short segments')
 def create_clean_line_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Clean LineString geometries by removing degenerate vertices and short segments.

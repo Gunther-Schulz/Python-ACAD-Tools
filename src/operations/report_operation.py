@@ -7,7 +7,9 @@ import re
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
 from src.operations.calculate_operation import create_calculate_layer
+from src.operations.registry import register_operation
 
+@register_operation('report', description='Generate area/perimeter statistics')
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating report for layer: {layer_name}")
     

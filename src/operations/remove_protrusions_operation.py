@@ -5,7 +5,9 @@ from shapely.ops import unary_union
 from scipy.spatial import ConvexHull
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import ensure_geodataframe
+from src.operations.registry import register_operation
 
+@register_operation('removeProtrusions', description='Remove small protrusions from boundaries')
 def create_remove_protrusions_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Remove thin protrusions while preserving the main polygon shape.

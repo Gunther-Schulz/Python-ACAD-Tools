@@ -3,7 +3,9 @@ import pandas as pd
 from shapely.geometry import Point, Polygon, LineString, MultiLineString, MultiPolygon
 from src.utils import log_debug, log_warning
 from src.style_manager import StyleManager
+from src.operations.registry import register_operation
 
+@register_operation('simpleLabel', needs_project_loader=True, creates_separate_layer=True, description='Create text labels at geometry centroids')
 def create_simple_label_layer(all_layers, project_settings, crs, layer_name, operation, project_loader=None):
     """
     Create a simple label layer with texts placed at the center of each geometry.

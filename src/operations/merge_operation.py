@@ -4,7 +4,9 @@ from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
 from src.operations.common_operations import *
+from src.operations.registry import register_operation
 
+@register_operation('merge', description='Union geometries from multiple layers')
 def create_merged_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating merged layer: {layer_name}")
     source_layers = operation.get('layers', [])

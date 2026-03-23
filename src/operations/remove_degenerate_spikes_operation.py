@@ -14,8 +14,10 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import ensure_geodataframe
+from src.operations.registry import register_operation
 
 
+@register_operation('removeDegenerateSpikes', description='Remove zero-width spike features')
 def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Remove degenerate spikes using multiple aggressive techniques.

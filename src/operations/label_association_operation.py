@@ -8,6 +8,7 @@ import math
 import numpy as np
 from src.style_manager import StyleManager
 import networkx as nx
+from src.operations.registry import register_operation
 
 
 def get_line_placement_positions(line, text_width, text_height, step=None):
@@ -893,6 +894,7 @@ def _select_optimal_labels(G, settings):
 
     return selected_nodes
 
+@register_operation('labelAssociation', needs_project_loader=True, description='Place labels along lines with collision avoidance')
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation, project_loader):
     """Create label association layer."""
     try:

@@ -20,8 +20,10 @@ Algorithm:
 import geopandas as gpd
 from shapely.geometry import MultiPolygon, Polygon
 from src.utils import log_info, log_debug
+from src.operations.registry import register_operation
 
 
+@register_operation('dissolveByMajorityIntersection', description='Merge polygons by majority overlap')
 def create_dissolve_by_majority_intersection_layer(
     all_layers, global_path_prefix, source_crs, layer_name, operation_config
 ):

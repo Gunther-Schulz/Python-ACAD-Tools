@@ -2,7 +2,9 @@ import geopandas as gpd
 from shapely.geometry import LineString, MultiLineString, Polygon, MultiPolygon
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning
+from src.operations.registry import register_operation
 
+@register_operation('extractBoundary', description='Extract boundary lines from polygons')
 def create_extract_boundary_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Extract boundaries from polygons and convert them to lines.

@@ -2,7 +2,9 @@ import geopandas as gpd
 from src.utils import log_info, log_warning, log_error, log_debug
 import decimal
 from decimal import Decimal, ROUND_HALF_UP
+from src.operations.registry import register_operation
 
+@register_operation('calculate', description='Add calculated fields to features')
 def create_calculate_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating calculate layer: {layer_name}")
     

@@ -5,8 +5,10 @@ from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, format_operation_warning
 import numpy as np
 from scipy.spatial.distance import cdist
+from src.operations.registry import register_operation
 
 
+@register_operation('polygonize', description='Create polygons from line segments')
 def create_polygonize_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Create boundary polygons from line segments by buffering and unioning.

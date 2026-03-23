@@ -3,7 +3,9 @@ import pandas as pd
 from shapely.geometry import Point
 from src.utils import log_debug, log_warning
 from src.style_manager import StyleManager
+from src.operations.registry import register_operation
 
+@register_operation('pointLabel', needs_project_loader=True, creates_separate_layer=True, description='Place text labels at point geometries')
 def create_point_label_layer(all_layers, project_settings, crs, layer_name, operation, project_loader=None):
     """
     Create a label layer using existing point geometries for placement.

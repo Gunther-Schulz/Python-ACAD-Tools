@@ -2,7 +2,9 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning
+from src.operations.registry import register_operation
 
+@register_operation('removeInteriorRings', description='Remove holes from polygons')
 def create_remove_interior_rings_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Remove interior rings (holes) from polygons, keeping only the exterior ring.

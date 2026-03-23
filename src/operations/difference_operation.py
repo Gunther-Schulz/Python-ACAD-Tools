@@ -5,7 +5,9 @@ from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, explode_to_singlepart, format_operation_warning, make_valid_geometry
 from src.operations.intersection_operation import _create_intersection_overlay_layer
 import pandas as pd
+from src.operations.registry import register_operation
 
+@register_operation('difference', description='Boolean difference of layers')
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating difference layer: {layer_name}")
     overlay_layers = operation.get('layers', [])

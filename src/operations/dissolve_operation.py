@@ -3,7 +3,9 @@ from shapely.ops import unary_union
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning, explode_to_singlepart, apply_buffer_trick, make_valid_geometry, _merge_close_vertices, snap_vertices_to_grid
 import pandas as pd
+from src.operations.registry import register_operation
 
+@register_operation('dissolve', description='Aggregate touching geometries')
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating dissolved layer: {layer_name}")
     source_layers = operation.get('layers', [])

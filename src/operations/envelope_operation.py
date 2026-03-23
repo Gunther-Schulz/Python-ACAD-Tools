@@ -5,7 +5,9 @@ from shapely.ops import unary_union
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import _process_layer_info, format_operation_warning
 from scipy.spatial import distance
+from src.operations.registry import register_operation
 
+@register_operation('envelope', description='Create convex hull from geometries')
 def create_envelope_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Creates a minimum-area bounding rectangle (envelope) for each input geometry.

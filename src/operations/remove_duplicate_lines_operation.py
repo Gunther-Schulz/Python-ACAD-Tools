@@ -3,7 +3,9 @@ from shapely.geometry import LineString, MultiLineString, Point
 from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning
 import numpy as np
+from src.operations.registry import register_operation
 
+@register_operation('removeDuplicateLines', description='Deduplicate identical lines')
 def create_remove_duplicate_lines_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Remove duplicate and overlapping line segments.

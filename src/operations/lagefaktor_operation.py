@@ -4,7 +4,9 @@ from src.utils import log_debug, log_warning, log_error, log_info, resolve_path
 import yaml
 import os
 from openpyxl.styles import Alignment, Font, PatternFill
+from src.operations.registry import register_operation
 
+@register_operation('lagefaktor', description='Calculate construction/compensatory area factors')
 def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, operation):
     """Process Lagefaktor calculations for construction and compensatory areas."""
     show_log = operation.get('showLog', False)

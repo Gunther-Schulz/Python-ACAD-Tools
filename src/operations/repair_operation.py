@@ -3,6 +3,7 @@ import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from shapely.validation import make_valid
 from src.utils import log_info, log_warning, log_error, log_debug
+from src.operations.registry import register_operation
 from src.operations.common_operations import (
     _process_layer_info,
     _get_filtered_geometry,
@@ -17,6 +18,7 @@ from src.operations.common_operations import (
 import traceback
 
 
+@register_operation('repair', description='Fix invalid geometries')
 def create_repair_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Create a repaired layer by applying various geometry cleaning and repair operations.

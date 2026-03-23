@@ -4,8 +4,10 @@ from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union, split
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
 from src.operations.common_operations import *
+from src.operations.registry import register_operation
 
 
+@register_operation('buffer', description='Create offset geometries')
 def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating buffer layer: {layer_name}")
     log_debug(f"Operation details: {operation}")

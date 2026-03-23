@@ -3,8 +3,10 @@ from src.utils import log_info, log_warning, log_error, log_debug
 import traceback
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
+from src.operations.registry import register_operation
 
 
+@register_operation('intersection', description='Boolean intersection of layers')
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     return _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
 

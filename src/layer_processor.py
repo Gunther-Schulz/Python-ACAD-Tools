@@ -12,44 +12,7 @@ import shutil
 import fiona
 from src.style_manager import StyleManager
 
-# Import operations individually
-from src.operations import (
-    create_copy_layer,
-    create_buffer_layer,
-    create_difference_layer,
-    create_intersection_layer,
-    create_filtered_by_intersection_layer,
-    process_wmts_or_wms_layer,
-    create_merged_layer,
-    create_smooth_layer,
-    _handle_contour_operation,
-    create_dissolved_layer,
-    create_calculate_layer,
-    create_directional_line_layer,
-    create_circle_layer,
-    create_connect_points_layer,
-    create_envelope_layer,
-    create_label_association_layer,
-    create_filtered_by_column_layer,
-    create_repair_layer,
-    create_remove_interior_rings_layer,
-    create_clean_line_layer,
-    create_extract_boundary_layer,
-    create_break_at_intersections_layer,
-    create_remove_duplicate_lines_layer,
-    create_dissolve_by_majority_intersection_layer
-)
-from src.operations.filter_geometry_operation import create_filtered_geometry_layer
-from src.operations.report_operation import create_report_layer
 from src.shapefile_utils import write_shapefile
-from src.operations.lagefaktor_operation import create_lagefaktor_layer
-from src.operations.simple_label_operation import create_simple_label_layer
-from src.operations.point_label_operation import create_point_label_layer
-from src.operations.simplify_slivers_operation import create_simplify_slivers_layer
-from src.operations.remove_protrusions_operation import create_remove_protrusions_layer
-from src.operations.remove_slivers_erosion_operation import create_remove_slivers_erosion_layer
-from src.operations.remove_degenerate_spikes_operation import create_remove_degenerate_spikes_layer
-from src.operations.polygonize_operation import create_polygonize_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -477,102 +440,27 @@ class LayerProcessor:
             # If neither 'layers' nor 'operations' keys exist, use the current layer
             operation['layers'] = [layer_name]
 
-        # Perform the operation
-        result = None
-        if op_type == 'copy':
-            result = create_copy_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'buffer':
-            result = create_buffer_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'difference':
-            result = create_difference_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'intersection':
-            result = create_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'filterByIntersection':
-            result = create_filtered_by_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'wmts' or op_type == 'wms':
-            result = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.project_loader)
-        elif op_type == 'merge':
-            result = create_merged_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'smooth':
-            result = create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'contour':
-            result = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'filterGeometry':
-            result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'dissolve':
-            result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'report':
-            result = create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'calculate':
-            result = create_calculate_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'directionalLine':
-            result = create_directional_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'circle':
-            result = create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'connect-points':
-            result = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'envelope':
-            result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'repair':
-            result = create_repair_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'removeInteriorRings':
-            result = create_remove_interior_rings_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'labelAssociation':
-            result = create_label_association_layer(self.all_layers, self.project_settings,
-                                                 self.crs, layer_name, operation,
-                                                 self.project_loader)
-        elif op_type == 'lagefaktor':
-            result = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'simpleLabel':
-            # Create a separate label layer name
-            label_layer_name = f"{layer_name}_labels"
-            # Generate the labels
-            labels_result = create_simple_label_layer(self.all_layers, self.project_settings,
-                                             self.crs, layer_name, operation,
-                                             self.project_loader)
-            # Store in a separate layer
-            if labels_result is not None:
-                self.all_layers[label_layer_name] = labels_result
-                log_debug(f"Created label layer '{label_layer_name}' for '{layer_name}'")
-            # Return None so the original layer is preserved
-            return None
-        elif op_type == 'pointLabel':
-            # Create a separate label layer name
-            label_layer_name = f"{layer_name}_labels"
-            # Generate the labels using existing point geometries
-            labels_result = create_point_label_layer(self.all_layers, self.project_settings,
-                                             self.crs, layer_name, operation,
-                                             self.project_loader)
-            # Store in a separate layer
-            if labels_result is not None:
-                self.all_layers[label_layer_name] = labels_result
-                log_debug(f"Created point label layer '{label_layer_name}' for '{layer_name}'")
-            # Return None so the original layer is preserved
-            return None
-        elif op_type == 'filterByColumn':
-            result = create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'simplifySlivers':
-            result = create_simplify_slivers_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'removeProtrusions':
-            result = create_remove_protrusions_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'removeSliversErosion':
-            result = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'removeDegenerateSpikes':
-            result = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'cleanLine':
-            result = create_clean_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'extractBoundary':
-            result = create_extract_boundary_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'breakAtIntersections':
-            result = create_break_at_intersections_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'removeDuplicateLines':
-            result = create_remove_duplicate_lines_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'dissolveByMajorityIntersection':
-            result = create_dissolve_by_majority_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'polygonize':
-            result = create_polygonize_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        else:
+        # Perform the operation via registry
+        from src.operations.registry import get_operation
+        op_info = get_operation(op_type)
+        if op_info is None:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+            return None
+
+        if op_info.needs_project_loader:
+            result = op_info.handler(self.all_layers, self.project_settings,
+                                     self.crs, layer_name, operation,
+                                     self.project_loader)
+        else:
+            result = op_info.handler(self.all_layers, self.project_settings,
+                                     self.crs, layer_name, operation)
+
+        # Handle operations that create separate layers (e.g., simpleLabel, pointLabel)
+        if op_info.creates_separate_layer:
+            sep_layer_name = f"{layer_name}{op_info.separate_layer_suffix}"
+            if result is not None:
+                self.all_layers[sep_layer_name] = result
+                log_debug(f"Created separate layer '{sep_layer_name}' for '{layer_name}'")
             return None
 
         # Auto-repair after boolean operations
@@ -597,43 +485,25 @@ class LayerProcessor:
 
     def _apply_auto_repair(self, layer_name, auto_repair_config):
         """Apply auto-repair operations after boolean ops using project-level settings."""
+        from src.operations.registry import get_operation
+
         result = self.all_layers.get(layer_name)
         if result is None:
             return None
 
         log_debug(f"Applying auto-repair to layer '{layer_name}'")
 
-        if 'removeDegenerateSpikes' in auto_repair_config:
-            repair_op = {'type': 'removeDegenerateSpikes', 'layers': [layer_name],
-                         **auto_repair_config['removeDegenerateSpikes']}
-            r = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
-            if r is not None:
-                self.all_layers[layer_name] = r
-                result = r
-
-        if 'removeProtrusions' in auto_repair_config:
-            repair_op = {'type': 'removeProtrusions', 'layers': [layer_name],
-                         **auto_repair_config['removeProtrusions']}
-            r = create_remove_protrusions_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
-            if r is not None:
-                self.all_layers[layer_name] = r
-                result = r
-
-        if 'removeSliversErosion' in auto_repair_config:
-            repair_op = {'type': 'removeSliversErosion', 'layers': [layer_name],
-                         **auto_repair_config['removeSliversErosion']}
-            r = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
-            if r is not None:
-                self.all_layers[layer_name] = r
-                result = r
-
-        if 'repair' in auto_repair_config:
-            repair_op = {'type': 'repair', 'layers': [layer_name],
-                         **auto_repair_config['repair']}
-            r = create_repair_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
-            if r is not None:
-                self.all_layers[layer_name] = r
-                result = r
+        for op_type in ('removeDegenerateSpikes', 'removeProtrusions', 'removeSliversErosion', 'repair'):
+            if op_type in auto_repair_config:
+                op_info = get_operation(op_type)
+                if op_info is None:
+                    continue
+                repair_op = {'type': op_type, 'layers': [layer_name],
+                             **auto_repair_config[op_type]}
+                r = op_info.handler(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
+                if r is not None:
+                    self.all_layers[layer_name] = r
+                    result = r
 
         return result
 

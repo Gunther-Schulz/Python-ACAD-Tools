@@ -4,7 +4,9 @@ from src.utils import log_info, log_warning, log_error, log_debug
 from src.contour_processor import process_contour
 from src.operations.common_operations import _get_filtered_geometry
 from src.operations.common_operations import *
+from src.operations.registry import register_operation
 
+@register_operation('contour', description='Generate contour lines from elevation data')
 def _handle_contour_operation(all_layers, project_settings, crs, layer_name, operation):
         log_debug(f"Starting contour operation for layer: {layer_name}")
         log_debug(f"Operation details: {operation}")

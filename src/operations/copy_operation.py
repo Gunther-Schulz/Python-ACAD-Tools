@@ -3,7 +3,9 @@ import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import format_operation_warning, _process_layer_info, _get_filtered_geometry, explode_to_singlepart
+from src.operations.registry import register_operation
 
+@register_operation('copy', description='Copy geometries from one or more layers')
 def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating copy layer: {layer_name}")
     log_debug(f"Copy operation details for {layer_name}: {operation}")
