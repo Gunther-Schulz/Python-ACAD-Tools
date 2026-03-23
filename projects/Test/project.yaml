@@ -1,6 +1,7 @@
 exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
+useFolderPrefix: false
 dxfFilename: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/test_output.dxf"
 shapefileOutputDir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"
 

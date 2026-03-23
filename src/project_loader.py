@@ -47,6 +47,11 @@ class ProjectLoader:
         # Load main project settings (stays at root)
         main_settings = self.load_yaml_file('project.yaml', required=True)
 
+        # Allow projects to opt out of the global folder prefix
+        if not main_settings.get('useFolderPrefix', True):
+            self.folder_prefix = ''
+            log_debug("Project opted out of folderPrefix")
+
         # Load root level geom_layers.yaml (main file)
         geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
 
@@ -116,7 +121,8 @@ class ProjectLoader:
         block_default_layer = block_inserts.get('default_layer', DEFAULT_BLOCK_LAYER) if block_inserts else DEFAULT_BLOCK_LAYER
 
         # Extract global auto sync conflict resolution setting
-        auto_conflict_resolution = main_settings.get('auto_conflict_resolution', DEFAULT_CONFLICT_RESOLUTION)
+        auto_conflict_resolution = main_settings.get('autoConflictResolution',
+                                    main_settings.get('auto_conflict_resolution', DEFAULT_CONFLICT_RESOLUTION))
 
         # Validate deletion policies for both entity types
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
@@ -214,6 +220,12 @@ class ProjectLoader:
                         log_debug(f"Expanded hatch property on '{layer['name']}' into layer '{hatch_layer_name}'")
         geom_layers['geomLayers'] = expanded_layers
 
+        # Load reducedDxf from separate file if it exists, otherwise use project.yaml
+        reduced_dxf_config = self.load_yaml_file('reduced_dxf.yaml', required=False) or {}
+        if 'reducedDxf' in reduced_dxf_config:
+            main_settings['reducedDxf'] = reduced_dxf_config['reducedDxf']
+            log_debug("Loaded reducedDxf config from reduced_dxf.yaml")
+
         # Merge all settings
         self.project_settings = {
             **main_settings,
@@ -242,7 +254,7 @@ class ProjectLoader:
             'viewport_discover_untracked_layers': viewport_discovery_layers,
 
             # Auto sync settings
-            'auto_conflict_resolution': auto_conflict_resolution,
+            'autoConflictResolution': auto_conflict_resolution,
         }
 
         # Process core settings

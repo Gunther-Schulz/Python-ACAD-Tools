@@ -242,7 +242,8 @@ def resolve_sync_conflict(entity_name, yaml_config, dxf_entity, project_settings
     # Get conflict policy hierarchy
     sync_meta = get_sync_metadata(yaml_config)
     entity_policy = sync_meta.get('conflict_policy')
-    global_policy = project_settings.get('auto_conflict_resolution', 'prompt')
+    global_policy = project_settings.get('autoConflictResolution',
+                     project_settings.get('auto_conflict_resolution', 'prompt'))
 
     # Use entity policy if specified, otherwise global policy
     policy = entity_policy if entity_policy else global_policy
