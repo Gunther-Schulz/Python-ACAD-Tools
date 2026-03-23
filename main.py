@@ -87,113 +87,19 @@ class ProjectProcessor:
         return doc
 
 def print_layer_operations():
-    operations = {
-        "copy": {
-            "description": "Create a copy of one or more layers",
-            "options": {
-                "layers": "List of source layers to copy",
-                "values": "List of values to filter the source layers"
-            }
-        },
-        "buffer": {
-            "description": "Create a buffer around geometries",
-            "options": {
-                "distance": "Buffer distance",
-                "mode": "Buffer mode (outer, inner, keep, off)",
-                "joinStyle": "Join style for buffer (round, mitre, bevel)"
-            }
-        },
-        "difference": {
-            "description": "Create a layer from the difference of two or more layers",
-            "options": {
-                "layers": "List of layers to perform difference operation"
-            }
-        },
-        "intersection": {
-            "description": "Create a layer from the intersection of two or more layers",
-            "options": {
-                "layers": "List of layers to perform intersection operation"
-            }
-        },
-        "filter": {
-            "description": "Filter geometries based on certain criteria",
-            "options": {
-                "layers": "List of layers to filter",
-                "values": "List of values to filter the layers"
-            }
-        },
-        "wmts": {
-            "description": "Add a Web Map Tile Service layer",
-            "options": {
-                "url": "WMTS service URL",
-                "layer": "WMTS layer name",
-                "srs": "Spatial Reference System",
-                "format": "Image format",
-                "targetFolder": "Folder to store downloaded tiles",
-                "buffer": "Buffer distance for processing area",
-                "zoom": "Zoom level",
-                "overwrite": "Whether to overwrite existing tiles",
-                "postProcess": {
-                    "colorMap": "Map colors in the image",
-                    "alphaColor": "Set a color to be fully transparent",
-                    "grayscale": "Convert image to grayscale",
-                    "removeText": "Remove text from the image"
-                }
-            }
-        },
-        "wms": {
-            "description": "Add a Web Map Service layer",
-            "options": {
-                "url": "WMS service URL",
-                "layer": "WMS layer name",
-                "srs": "Spatial Reference System",
-                "format": "Image format",
-                "targetFolder": "Folder to store downloaded images",
-                "buffer": "Buffer distance for processing area",
-                "zoom": "Zoom level",
-                "overwrite": "Whether to overwrite existing images",
-                "postProcess": {
-                    "colorMap": "Map colors in the image",
-                    "alphaColor": "Set a color to be fully transparent",
-                    "grayscale": "Convert image to grayscale",
-                    "removeText": "Remove text from the image"
-                }
-            }
-        },
-        "merge": {
-            "description": "Merge multiple layers into one",
-            "options": {
-                "layers": "List of layers to merge"
-            }
-        },
-        "smooth": {
-            "description": "Smooth geometries in a layer",
-            "options": {
-                "strength": "Smoothing strength"
-            }
-        },
-        "contour": {
-            "description": "Generate contour lines from elevation data",
-            "options": {
-                "url": "URL to ATOM feed with elevation data",
-                "layers": "List of layers to process",
-                "buffer": "Buffer distance for processing area"
-            }
-        }
-    }
-
-    log_info("Available Layer Operations:")
-    for op, details in operations.items():
-        log_info(f"\n{op.upper()}:")
-        log_info(f"  Description: {details['description']}")
-        log_info("  Options:")
-        for option, description in details['options'].items():
-            if isinstance(description, dict):
-                log_info(f"    - {option}:")
-                for sub_option, sub_description in description.items():
-                    log_info(f"      - {sub_option}: {sub_description}")
-            else:
-                log_info(f"    - {option}: {description}")
+    from src.operations.registry import get_all_operations
+    operations = get_all_operations()
+    log_info(f"Available Layer Operations ({len(operations)}):")
+    for op_type in sorted(operations.keys()):
+        info = operations[op_type]
+        desc = f" - {info.description}" if info.description else ""
+        flags = []
+        if info.needs_project_loader:
+            flags.append("requires project_loader")
+        if info.creates_separate_layer:
+            flags.append(f"creates {info.separate_layer_suffix} layer")
+        flag_str = f"  ({', '.join(flags)})" if flags else ""
+        log_info(f"  {op_type}{desc}{flag_str}")
 
 def print_layer_settings():
     settings = {
