@@ -385,35 +385,6 @@ class DXFExporter:
             if layer_name in self.all_layers:
                 self._process_wmts_layer(doc, msp, layer_name, layer_info)
 
-    def process_single_layer(self, doc, msp, layer_name, layer_info):
-        log_debug(f"Processing layer: {layer_name}")
-
-        # Check sync mode for processing
-        if not self._should_process_layer(layer_info):
-            return
-
-        # Process layer style
-        layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
-
-        # Create and process layer for sync: push mode
-        if layer_name not in doc.layers:
-            new_layer = doc.layers.new(name=layer_name)
-            log_debug(f"Created new layer: {layer_name}")
-        else:
-            new_layer = doc.layers.get(layer_name)
-
-        # Apply layer properties
-        update_layer_properties(new_layer, layer_properties, self.name_to_aci)
-
-        if self.is_wmts_or_wms_layer(layer_info):
-            self._process_wmts_layer(doc, msp, layer_name, layer_info)
-        else:
-            self._process_regular_layer(doc, msp, layer_name, layer_info)
-
-        if 'viewports' in layer_info:
-            self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
-
-        self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_debug(f"Processing WMTS layer: {layer_name}")
@@ -780,13 +751,6 @@ class DXFExporter:
             return any(op['type'] in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
 
-    def is_generated_layer(self, layer_name):
-        # Check if the layer is generated (has an operation) and not loaded from a shapefile
-        for layer in self.project_settings['geomLayers']:
-            if layer['name'] == layer_name:
-                return 'operation' in layer and 'shapeFile' not in layer
-        return False
-
     def get_geometry_centroid(self, geometry):
         if isinstance(geometry, (Polygon, MultiPolygon)):
             return geometry.centroid
@@ -837,14 +801,6 @@ class DXFExporter:
 
         except Exception as e:
             log_error(f"Error adding point to layer {layer_name}: {str(e)}")
-
-    def verify_entity_hyperlinks(self, msp, layer_name):
-        log_debug(f"Verifying hyperlinks for entities in layer {layer_name}")
-        for entity in msp.query(f'*[layer=="{layer_name}"]'):
-            if hasattr(entity, 'get_hyperlink'):
-                pass
-            else:
-                log_warning(f"Entity {entity.dxftype()} in layer {layer_name} has no 'get_hyperlink' method")
 
     def check_existing_entities(self, doc):
         log_debug("Checking existing entities in the DXF file")
@@ -994,9 +950,6 @@ class DXFExporter:
             else:
                 result[key] = value
         return result
-
-    def apply_style(self, entity, style):
-        apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
 
     def create_path_arrays(self, msp):
         path_arrays = self.project_settings.get('pathArrays', [])
@@ -1189,23 +1142,6 @@ class DXFExporter:
                     except:
                         continue
         return None
-
-    def export_geometry_to_dxf(self, geometry, layer_info, doc):
-        layer_name = layer_info['name']
-
-        # First check if we have any layer properties stored
-        layer_properties = self.layer_properties.get(layer_name, {})
-
-        # Only create layer if it doesn't exist, without modifying properties
-        ensure_layer_exists(doc, layer_name)
-
-        # Only apply properties if they were explicitly set (not empty dicts)
-        if layer_properties.get('layer') or layer_properties.get('entity'):
-            layer = doc.layers[layer_name]
-            if layer_properties.get('layer'):
-                update_layer_properties(layer, layer_properties['layer'])
-
-        # Process the geometry...
 
     def add_label_points_to_dxf(self, msp, geo_data, layer_name, layer_info):
         """Add label points with rotation to DXF."""
