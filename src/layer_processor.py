@@ -436,8 +436,6 @@ class LayerProcessor:
 
         if result is not None:
             self.all_layers[layer_name] = result
-            if self.plot_ops:
-                self.plot_operation_result(layer_name, op_type, result)
 
         # Clean up temporary layers
         if 'operations' in operation:

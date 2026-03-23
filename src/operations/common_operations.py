@@ -196,21 +196,6 @@ def standardize_layer_crs(all_layers, project_settings, crs, layer_name, geometr
             return geometry_or_gdf
 
 
-def plot_operation_result(all_layers, project_settings, crs, layer_name, op_type, result):
-        plt.figure(figsize=(10, 10))
-        if isinstance(result, gpd.GeoDataFrame):
-            result.plot(ax=plt.gca())
-        elif isinstance(result, list):  # For WMTS tiles
-            log_debug(f"WMTS layer {layer_name} cannot be plotted directly.")
-            return
-        else:
-            gpd.GeoSeries([result]).plot(ax=plt.gca())
-        plt.title(f"{op_type.capitalize()} Operation Result for {layer_name}")
-        plt.axis('off')
-        plt.tight_layout()
-        plt.show()
-
-
 def _clean_single_geometry(all_layers, project_settings, crs, geometry):
     # Implement the cleaning logic here
     # For example:
@@ -298,18 +283,6 @@ def _clean_linear_ring(all_layers, project_settings, crs, ring, sliver_removal_d
             cleaned = LineString(list(cleaned.coords) + [cleaned.coords[0]])
 
         return LinearRing(cleaned)
-
-
-def _remove_small_polygons(all_layers, project_settings, crs, geometry, min_area):
-        if isinstance(geometry, Polygon):
-            if geometry.area >= min_area:
-                return geometry
-            else:
-                return Polygon()
-        elif isinstance(geometry, MultiPolygon):
-            return MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
-        else:
-            return geometry
 
 
 def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance=0.1):
@@ -441,26 +414,6 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             log_debug(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
 
 
-def remove_non_polygons(geometry):
-    """Removes non-polygon elements from a geometry."""
-    log_debug("Removing non-polygon elements")
-    if isinstance(geometry, GeometryCollection):
-        return GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
-    elif isinstance(geometry, (Polygon, MultiPolygon)):
-        return geometry
-    else:
-        log_warning(f"Non-polygon geometry encountered. Removing.")
-        return None
-
-def clean_polygons(geometry):
-    """Cleans polygon geometries."""
-    log_debug("Cleaning polygon geometries")
-    if isinstance(geometry, GeometryCollection):
-        cleaned = [_clean_geometry(geom) for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-    else:
-        cleaned = [_clean_geometry(geometry)]
-    return [poly for poly in cleaned if poly is not None]
-
 def remove_thin_growths(geometry, threshold):
     """Removes thin growths from a geometry."""
     log_debug(f"Removing thin growths with threshold: {threshold}")
@@ -476,11 +429,6 @@ def apply_buffer_trick(geometry, buffer_distance):
     log_debug(f"Applying buffer trick with distance: {buffer_distance}")
     buffered = geometry.buffer(buffer_distance, join_style=2)  # 2 = mitre
     return buffered.buffer(-buffer_distance, join_style=2)  # 2 = mitre
-
-def final_union(geometries):
-    """Performs a final unary union on a list of geometries."""
-    log_debug("Performing final unary union")
-    return unary_union(geometries)
 
 def explode_to_singlepart(geometry_or_gdf):
     """
