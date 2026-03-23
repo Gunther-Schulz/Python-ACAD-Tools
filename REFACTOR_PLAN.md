@@ -8,7 +8,7 @@ Config-driven GIS-to-DXF pipeline. User writes YAML configs defining geometry la
 - 14K+ lines in src/, 36 operation modules in src/operations/
 - Entry point: main.py -> ProjectProcessor
 - Key files: layer_processor.py (orchestrator), dxf_exporter.py (GeoDataFrame->DXF), dxf_utils.py (entity creation), unified_sync_processor.py (bidirectional sync), project_loader.py (YAML config)
-- Currently uses conda env `acad` -- should move to editable pip install (see below)
+- Currently uses conda env `pycad` -- should move to editable pip install (see below)
 - Real projects in projects/ (Plasten, Friedrichshof, Bibow, Waren, Torgelow, etc.)
 
 ## Shared library
@@ -51,7 +51,7 @@ When a Claude session starts in a project folder, it reads CLAUDE.md and immedia
 
 ---
 
-## Agreed design decisions
+## Implemented
 
 ### 1. Keep the flat list format
 The current mental model works: layers are a flat list, each layer can reference other layers by name, the engine resolves dependencies automatically (not top-down). No new structural paradigm needed. The problem is verbosity, not structure.
@@ -106,37 +106,40 @@ autoRepair:
     removeFailures: true
 ```
 
-### 4. `enabled: false` instead of commenting out
-Layers can be disabled without commenting. Waren's 1296-line config is 95% comments -- this would make disabled layers scannable and re-enableable without risking YAML syntax errors.
+#### Legend defaults
+Shared text styles and spacing for legends. Define once in legends.yaml via `legendDefaults`, each legend inherits and can override.
 
 ```yaml
-- name: Bahntrasse
-  enabled: false
-  source: "input/bahntrasse.shp"
-  style: bahntrasse
+# legends.yaml
+legendDefaults:
+  max_width: 160
+  title_spacing: 0
+  subtitle_spacing: 4
+  group_spacing: 3
+  item_spacing: 4
+  titleTextStyle:
+    height: 8
+    color: "white"
+    text_style: "Arial"
+  itemTextStyle:
+    color: "white"
+    height: 3
+    text_style: "Arial"
+
+legends:
+  - name: "Legend NW"
+    position:
+      x: 368340
+      y: 5942620
+    # inherits all defaults, only specifies what differs
 ```
+
+### 4. `enabled: false` instead of commenting out
+All entity types support `enabled: false`: geomLayers, viewports, texts, blocks, legends, pathArrays. Disabled entities are skipped during processing without commenting out.
 
 ### 5. Hatching as a layer property
 Instead of creating separate "Schraffur" layers that just reference a parent layer, hatching becomes a property on the source layer. The engine creates the hatch layer(s) automatically.
 
-Before (2 layers, ~12 lines):
-```yaml
-- name: Wald
-  sync: push
-  operations:
-    - type: difference
-      layers:
-        - Acker
-
-- name: Wald Schraffur
-  sync: push
-  style: wald
-  applyHatch:
-    layers:
-      - Wald
-```
-
-After (1 layer, hatching is a property):
 ```yaml
 - name: Wald
   sync: push
@@ -149,101 +152,16 @@ After (1 layer, hatching is a property):
 ```
 
 ### 6. Templates
-
 Templates define reusable layer patterns with parameters. They solve two problems:
 - **Within a project**: repeated patterns like 3 Geltungsbereich regions with different parcels
 - **Across projects**: common patterns like admin boundaries, Baugrenze chain, reports
 
-#### Template definition
-Templates can live in the tool repo (shared across all projects) or in a project's own config (project-specific).
+Templates can live in:
+- Tool repo `templates/` directory (shared across all projects)
+- Project `templates.yaml` file (project-specific)
+- Inline in any layer YAML file
 
-```yaml
-templates:
-  - name: geltungsbereich_region
-    params:
-      - region
-      - parcels
-      - flur
-      - gemarkung
-      - gemeinde
-      - landUseLayer
-      - landUseMode
-      - wegeLayer
-    layers:
-      - name: "Geltungsbereich ${region} Base"
-        style: geltungsbereich
-        operations:
-          - type: copy
-            layers:
-              - name: Parcel
-                values: ${parcels}
-          - type: filterByIntersection
-            layers:
-              - name: Flur Input
-                values:
-                  - "${flur}"
-              - name: Gemarkung Input
-                values:
-                  - "${gemarkung}"
-              - name: Gemeinde Input
-                values:
-                  - "${gemeinde}"
-          - type: dissolve
-
-      - name: "Geltungsbereich ${region}"
-        sync: push
-        style: geltungsbereich
-        operations:
-          - type: dissolve
-            layers:
-              - AgriPV Base
-              - "${landUseLayer}"
-          - type: intersection
-            layers:
-              - "Geltungsbereich ${region} Base"
-          - type: dissolve
-            layers:
-              - Include Geltungsbereich
-          - type: intersection
-            layers:
-              - "Geltungsbereich ${region} Base"
-          - type: removeInteriorRings
-```
-
-#### Template usage
-```yaml
-apply:
-  - template: geltungsbereich_region
-    params:
-      region: NW
-      parcels:
-        - "1"
-        - "2"
-        - "4"
-        - "6"
-        - "7"
-        - "14"
-      flur: "Flur 1"
-      gemarkung: "Groß Plasten"
-      gemeinde: "Groß Plasten"
-      landUseLayer: Acker
-      landUseMode: union
-      wegeLayer: Wege Filtered NW
-
-  - template: geltungsbereich_region
-    params:
-      region: S
-      parcels:
-        - "41/1"
-      flur: "Flur 2"
-      gemarkung: "Klein Plasten"
-      gemeinde: "Groß Plasten"
-      landUseLayer: Acker_S
-      landUseMode: intersection
-```
-
-#### Cross-project template library (shipped with the tool)
-Analysis of all projects shows these patterns repeat in nearly every project:
+Cross-project template library (shipped with the tool):
 
 | Template | What it does | Found in |
 |----------|-------------|----------|
@@ -251,32 +169,23 @@ Analysis of all projects shows these patterns repeat in nearly every project:
 | geltungsbereich | Parcels -> filter -> dissolve -> exclude | All projects |
 | baugrenze_chain | Baufeld -> Baugrenze(-3m) -> Baugrenze 2(-0.4m) + reports | All projects |
 | zone_report | Standard area/perimeter report for a zone | All projects |
-| protection_ring | Buffer ring + T-Linie hatching (Schutzflaecheumgrenzung) | Bibow, Friedrichshof, Torgelow |
-| gruenflaeche | Green space calculation from natural features + hatching | Bibow, Friedrichshof, Torgelow |
 
-Templates expand to concrete layers via text substitution before processing. The result is the same flat list of layers.
+### 7. Legend normalization
+- Legend identifier changed from `id` to `name` for consistency (backward compatible with `id`)
+- `legendDefaults` support for shared settings across legends
 
----
-
-## Estimated impact on Plasten (most complex project)
-
-| Change | Lines saved |
-|--------|------------|
-| Auto-repair (removes 4-stage cleanup x5) | ~80 |
-| Buffer defaults (removes repeated params) | ~90 |
-| Hatch as property (eliminates ~10 Schraffur layers) | ~80 |
-| Templates for 3 Geltungsbereich regions | ~140 |
-| Templates for 12 report layers | ~250 |
-| **Total reduction** | **~640 lines (1793 -> ~1150)** |
-
-With multi-file splitting, the remaining ~1150 lines would be across 5-6 files of ~200 lines each.
+### 8. Deprecated systems removed
+- `dxf_processor.py` removed -- `dxf_operations.extracts` fully superseded by `dxfSource` in geom_layers, `transfers` unused
+- `dxf_operations.yaml`, `dxf_transfer.yaml`, `update_from_source.yaml` moved to `deprecated/` folder in each project for reference
+- Backend code cleaned from project_loader.py and dxf_exporter.py
 
 ---
 
 ## Decided against
-- **Template conditionals**: Not needed. Templates handle the 80% common pattern; the remaining 20% stays as regular layers. If a template needs conditionals, it should be split into simpler templates instead.
-- **Moving other YAML files**: dxf_operations.yaml, dxf_transfer.yaml, generated/, interactive/ stay where they are. Their current locations already make sense.
-- **Inline buffer references** (`Wald Input | buffer(10)`): Not worth it. Introduces a mini-expression parser for marginal line savings. Buffer-only layers are already shorter with bufferDefaults.
+- **Template conditionals**: Not needed. Templates handle the 80% common pattern; the remaining 20% stays as regular layers.
+- **Inline buffer references** (`Wald Input | buffer(10)`): Not worth it. Introduces a mini-expression parser for marginal line savings.
+- **Templating viewports/texts/blocks**: The `_sync` metadata makes these bidirectional sync entities. Templating would conflict with the sync system.
+- **Restructuring generated/interactive directories**: The split reflects sync direction (push-only vs bidirectional), which is meaningful.
 
 ## Future vision
 Web frontend where users chat with AI to manage GIS projects. The AI calls Python-ACAD-Tools programmatically. This requires a clean API layer on top of the engine.
