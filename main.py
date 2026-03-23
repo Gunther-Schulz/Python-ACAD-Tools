@@ -6,7 +6,8 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug, set_profiling_enabled
+from src.utils import log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug, set_profiling_enabled
+from src.project_templates import create_sample_project
 from src.dump_to_shape import dxf_to_shapefiles
 from src.dxf_utils import cleanup_document
 
