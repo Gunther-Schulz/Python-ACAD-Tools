@@ -3,7 +3,6 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union, split
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
-from src.operations.common_operations import *
 from src.operations.registry import register_operation
 
 

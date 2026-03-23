@@ -1,8 +1,7 @@
 import geopandas as gpd
 from src.utils import log_info, log_warning, log_error, log_debug
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
-from src.operations.common_operations import *
+from src.operations.common_operations import _get_filtered_geometry, _process_layer_info, explode_to_singlepart, format_operation_warning, make_valid_geometry, remove_geometry_types
 from src.operations.registry import register_operation
 
 

@@ -5,7 +5,6 @@ import os
 from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
 from owslib.wmts import WebMapTileService
 from src.project_loader import ProjectLoader
-from src.operations.common_operations import *
 from src.operations.registry import register_operation
 
 @register_operation('wmts', needs_project_loader=True, description='Add WMTS tile layer')

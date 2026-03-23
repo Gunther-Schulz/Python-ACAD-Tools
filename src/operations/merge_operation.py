@@ -2,8 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
-from src.operations.common_operations import *
+from src.operations.common_operations import _get_filtered_geometry, _process_layer_info, explode_to_singlepart, format_operation_warning, make_valid_geometry
 from src.operations.registry import register_operation
 
 @register_operation('merge', description='Union geometries from multiple layers')
