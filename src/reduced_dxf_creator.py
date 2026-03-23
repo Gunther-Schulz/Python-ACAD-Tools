@@ -405,177 +405,87 @@ class ReducedDXFCreator:
             raise
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
-        """
-        Copy entities from a layer. By default, copies all entity types.
-        Can be configured to only copy basic geometry types via copyAllEntityTypes: false
-        """
-        entity_count = 0
-        # Query for all entities in the layer
-        query = f'*[layer=="{layer_name}"]'
-        
-        # Check configuration - default to copying all entity types
+        """Copy entities from a layer. Supports full copy or selective basic geometry only."""
         reduced_settings = self.project_settings.get('reducedDxf', {})
         copy_all_types = reduced_settings.get('copyAllEntityTypes', True)
 
-        for entity in original_msp.query(query):
+        entity_count = 0
+        for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
             try:
-                # Get entity type
-                dxftype = entity.dxftype()
-
-                # If copying all types, use generic copy
                 if copy_all_types:
-                    try:
-                        new_entity = entity.copy()
-                        reduced_msp.add_entity(new_entity)
-                        entity_count += 1
-                    except Exception as e:
-                        log_warning(f"Failed to copy {dxftype} entity in layer {layer_name}: {str(e)}")
-                    continue
-
-                # Otherwise, use selective copying (legacy behavior)
-                # Skip any block references
-                if dxftype == 'INSERT':
-                    continue
-
-                # Get basic DXF attributes but exclude problematic ones
-                dxf_attribs = {}
-                if hasattr(entity, 'dxf'):
-                    # Copy only essential attributes
-                    for attr_name in ['color', 'layer', 'linetype', 'lineweight']:
-                        if hasattr(entity.dxf, attr_name):
-                            dxf_attribs[attr_name] = getattr(entity.dxf, attr_name)
-
-                # Ensure layer is set correctly
-                dxf_attribs['layer'] = layer_name
-
-                new_entity = None
-                # Handle each basic entity type
-                if dxftype == 'LWPOLYLINE':
-                    # Extract points
-                    try:
-                        points = list(entity.get_points())
-                        # Create new polyline with just the basic geometry
-                        new_entity = reduced_msp.add_lwpolyline(
-                            points,
-                            dxfattribs=dxf_attribs
-                        )
-                        # Copy closed status
-                        if hasattr(entity.dxf, 'closed'):
-                            new_entity.dxf.closed = entity.dxf.closed
-                    except Exception as e:
-                        log_warning(f"Failed to copy LWPOLYLINE: {str(e)}")
-
-                elif dxftype == 'LINE':
-                    try:
-                        # Create simple line
-                        new_entity = reduced_msp.add_line(
-                            start=entity.dxf.start,
-                            end=entity.dxf.end,
-                            dxfattribs=dxf_attribs
-                        )
-                    except Exception as e:
-                        log_warning(f"Failed to copy LINE: {str(e)}")
-
-                elif dxftype == 'CIRCLE':
-                    try:
-                        # Create simple circle
-                        new_entity = reduced_msp.add_circle(
-                            center=entity.dxf.center,
-                            radius=entity.dxf.radius,
-                            dxfattribs=dxf_attribs
-                        )
-                    except Exception as e:
-                        log_warning(f"Failed to copy CIRCLE: {str(e)}")
-
-                elif dxftype == 'ARC':
-                    try:
-                        # Create simple arc
-                        new_entity = reduced_msp.add_arc(
-                            center=entity.dxf.center,
-                            radius=entity.dxf.radius,
-                            start_angle=entity.dxf.start_angle,
-                            end_angle=entity.dxf.end_angle,
-                            dxfattribs=dxf_attribs
-                        )
-                    except Exception as e:
-                        log_warning(f"Failed to copy ARC: {str(e)}")
-
-                elif dxftype == 'POINT':
-                    try:
-                        # Create simple point
-                        new_entity = reduced_msp.add_point(
-                            location=entity.dxf.location,
-                            dxfattribs=dxf_attribs
-                        )
-                    except Exception as e:
-                        log_warning(f"Failed to copy POINT: {str(e)}")
-
-                elif dxftype == 'TEXT':
-                    try:
-                        # Create simple text
-                        new_entity = reduced_msp.add_text(
-                            text=entity.dxf.text,
-                            dxfattribs=dxf_attribs
-                        )
-                        # Copy position
-                        if hasattr(entity.dxf, 'insert'):
-                            new_entity.dxf.insert = entity.dxf.insert
-                        # Copy height
-                        if hasattr(entity.dxf, 'height'):
-                            new_entity.dxf.height = entity.dxf.height
-                        # Copy rotation
-                        if hasattr(entity.dxf, 'rotation'):
-                            new_entity.dxf.rotation = entity.dxf.rotation
-                    except Exception as e:
-                        log_warning(f"Failed to copy TEXT: {str(e)}")
-
-                elif dxftype == 'MTEXT':
-                    try:
-                        # Extract plain text content safely
-                        text_content = ""
-                        if hasattr(entity, 'text'):
-                            if callable(entity.text):
-                                text_content = entity.text()
-                            else:
-                                text_content = entity.text
-
-                        # Create simple mtext
-                        new_entity = reduced_msp.add_mtext(
-                            text=text_content,
-                            dxfattribs=dxf_attribs
-                        )
-                        # Copy position
-                        if hasattr(entity.dxf, 'insert'):
-                            new_entity.dxf.insert = entity.dxf.insert
-                        # Copy height
-                        if hasattr(entity.dxf, 'char_height'):
-                            new_entity.dxf.char_height = entity.dxf.char_height
-                        # Copy width
-                        if hasattr(entity.dxf, 'width'):
-                            new_entity.dxf.width = entity.dxf.width
-                        # Copy rotation
-                        if hasattr(entity.dxf, 'rotation'):
-                            new_entity.dxf.rotation = entity.dxf.rotation
-                    except Exception as e:
-                        log_warning(f"Failed to copy MTEXT: {str(e)}")
-
-                # Skip all other entity types
+                    new_entity = self._copy_entity_full(reduced_msp, entity, layer_name)
                 else:
-                    # Log unsupported entity types for visibility
-                    log_info(f"Skipping unsupported entity type '{dxftype}' in layer {layer_name}")
+                    new_entity = self._copy_entity_selective(reduced_msp, entity, layer_name)
 
-                # Add standard DXFEXPORTER appID to track entities using unified function
                 if new_entity is not None:
                     try:
                         new_entity.set_xdata(XDATA_APP_ID, create_entity_xdata(SCRIPT_IDENTIFIER))
                         entity_count += 1
                     except Exception as e:
                         log_warning(f"Failed to add XDATA to entity: {str(e)}")
-
             except Exception as e:
                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
 
         return entity_count
+
+    def _copy_entity_full(self, reduced_msp, entity, layer_name):
+        """Copy entity using generic deep copy (all entity types)."""
+        try:
+            new_entity = entity.copy()
+            reduced_msp.add_entity(new_entity)
+            return new_entity
+        except Exception as e:
+            log_warning(f"Failed to copy {entity.dxftype()} entity in layer {layer_name}: {str(e)}")
+            return None
+
+    def _copy_entity_selective(self, reduced_msp, entity, layer_name):
+        """Copy only basic geometry types (legacy behavior)."""
+        dxftype = entity.dxftype()
+
+        if dxftype == 'INSERT':
+            return None
+
+        dxf_attribs = {'layer': layer_name}
+        for attr in ('color', 'linetype', 'lineweight'):
+            if hasattr(entity.dxf, attr):
+                dxf_attribs[attr] = getattr(entity.dxf, attr)
+
+        try:
+            if dxftype == 'LWPOLYLINE':
+                new = reduced_msp.add_lwpolyline(list(entity.get_points()), dxfattribs=dxf_attribs)
+                if hasattr(entity.dxf, 'closed'):
+                    new.dxf.closed = entity.dxf.closed
+                return new
+            elif dxftype == 'LINE':
+                return reduced_msp.add_line(start=entity.dxf.start, end=entity.dxf.end, dxfattribs=dxf_attribs)
+            elif dxftype == 'CIRCLE':
+                return reduced_msp.add_circle(center=entity.dxf.center, radius=entity.dxf.radius, dxfattribs=dxf_attribs)
+            elif dxftype == 'ARC':
+                return reduced_msp.add_arc(center=entity.dxf.center, radius=entity.dxf.radius,
+                                           start_angle=entity.dxf.start_angle, end_angle=entity.dxf.end_angle, dxfattribs=dxf_attribs)
+            elif dxftype == 'POINT':
+                return reduced_msp.add_point(location=entity.dxf.location, dxfattribs=dxf_attribs)
+            elif dxftype == 'TEXT':
+                new = reduced_msp.add_text(text=entity.dxf.text, dxfattribs=dxf_attribs)
+                for attr in ('insert', 'height', 'rotation'):
+                    if hasattr(entity.dxf, attr):
+                        setattr(new.dxf, attr, getattr(entity.dxf, attr))
+                return new
+            elif dxftype == 'MTEXT':
+                text_content = entity.text if hasattr(entity, 'text') else ""
+                if callable(text_content):
+                    text_content = text_content()
+                new = reduced_msp.add_mtext(text=text_content, dxfattribs=dxf_attribs)
+                for attr in ('insert', 'char_height', 'width', 'rotation'):
+                    if hasattr(entity.dxf, attr):
+                        setattr(new.dxf, attr, getattr(entity.dxf, attr))
+                return new
+            else:
+                log_info(f"Skipping unsupported entity type '{dxftype}' in layer {layer_name}")
+                return None
+        except Exception as e:
+            log_warning(f"Failed to copy {dxftype}: {str(e)}")
+            return None
 
     def _copy_block_definition(self, source_doc, target_doc, block_name):
         """Copy a block definition from source document to target document."""
