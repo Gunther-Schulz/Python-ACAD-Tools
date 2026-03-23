@@ -174,7 +174,42 @@ Cross-project template library (shipped with the tool):
 - Legend identifier changed from `id` to `name` for consistency (backward compatible with `id`)
 - `legendDefaults` support for shared settings across legends
 
-### 8. Deprecated systems removed
+### 8. Style system improvements
+
+#### Style inheritance (`extends`)
+Styles can inherit from a parent style via `extends`. Child values override parent via deep merge.
+
+```yaml
+# styles.yaml
+baugrenze:
+  layer:
+    linetype: ACAD_ISO11W100
+    lineweight: 50
+  entity:
+    linetypeGeneration: true
+
+testZone:
+  extends: baugrenze
+  layer:
+    color: "green"    # adds color, keeps linetype + lineweight from parent
+```
+
+#### Per-project style overrides
+Projects can have their own `styles.yaml` that merges into the global styles. Only styles defined in the project file override the global ones; everything else is kept.
+
+### 9. Project settings improvements
+
+#### `useFolderPrefix`
+Projects can opt out of the global `folderPrefix` from `projects.yaml` by setting `useFolderPrefix: false` in their `project.yaml`. Useful for projects with absolute paths or projects living outside the standard folder structure.
+
+#### `autoConflictResolution` (camelCase)
+Renamed from `auto_conflict_resolution` to follow camelCase convention used by all other settings. No backward compatibility fallback.
+
+### 10. Bug fixes
+- `simpleLabel` operation now correctly resolves source layer from `layers` key when no explicit `sourceLayer` is specified. Fixes label column not found warnings on boundary layers.
+- `zone_report` template opts out of auto-repair on intersection to prevent data column loss.
+
+### 11. Deprecated systems removed
 - `dxf_processor.py` removed -- `dxf_operations.extracts` fully superseded by `dxfSource` in geom_layers, `transfers` unused
 - `dxf_operations.yaml`, `dxf_transfer.yaml`, `update_from_source.yaml` moved to `deprecated/` folder in each project for reference
 - Backend code cleaned from project_loader.py and dxf_exporter.py
