@@ -1,0 +1,62 @@
+# Zone report template
+# Creates a parcel intersection report for a given zone.
+# Shows which parcels are fully or partially covered by the zone.
+#
+# Usage:
+#   apply:
+#     - template: zone_report
+#       params:
+#         zone_name: Geltungsbereich NW
+#         parcel_layer: Parcel
+#         report_dir: "/path/to/reports"
+
+templates:
+  - name: zone_report
+    params:
+      - zone_name
+      - parcel_layer
+      - report_dir
+    layers:
+      - name: "${zone_name} Report"
+        operations:
+          - type: copy
+            layers:
+              - "${parcel_layer}"
+          - type: calculate
+            calculations:
+              - type: area
+                as: parcel_area
+                decimalPlaces: 0
+          - type: intersection
+            layers:
+              - "${zone_name}"
+          - type: filterGeometry
+            minArea: 10
+            geometryTypes:
+              - polygon
+          - type: calculate
+            calculations:
+              - type: area
+                as: intersection_area
+                decimalPlaces: 0
+              - type: coverage_status
+                areaTolerance: 10
+                totalAreaColumn: parcel_area
+                intersectionAreaColumn: intersection_area
+                as: status
+                completeLabel: "vollständig"
+                partialLabel: "teilweise"
+          - type: report
+            outputFile: "${report_dir}/${zone_name}_report.json"
+            sortBy: label
+            featureColumns:
+              - label
+              - parcel_area
+              - intersection_area
+              - status
+            calculate:
+              - area
+            decimalPlaces:
+              area: 0
+              parcel_area: 0
+              intersection_area: 0

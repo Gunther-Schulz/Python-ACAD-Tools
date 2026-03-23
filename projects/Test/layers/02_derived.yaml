@@ -1,31 +1,47 @@
 geomLayers:
-  # --- Test: multi-file splitting (this layer references layers from geom_layers.yaml) ---
-  - name: Baugrenze
+  # --- Combined Geltungsbereich (both regions) ---
+  - name: Geltungsbereich
     operations:
-      - type: buffer
+      - type: dissolve
         layers:
-          - Planning Zone
-        distance: -3
-        joinStyle: mitre
+          - Geltungsbereich West
+          - Geltungsbereich East
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Exclude Zone
 
   # --- Test: hatch as layer property ---
-  - name: Baufeld
+  - name: Planning Area
     hatch:
       - style: baufeld
     operations:
       - type: copy
         layers:
-          - Planning Zone
-
-  # --- Test: report ---
-  - name: Planning Zone Report
-    operations:
-      - type: copy
+          - Geltungsbereich
+      - type: difference
+        reverseDifference: false
         layers:
-          - Planning Zone
-      - type: report
-        outputFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/planning_zone_report.json"
-        calculate:
-          - area
-        decimalPlaces:
-          area: 0
+          - Forest Buffer
+
+apply:
+  # Template: baugrenze_chain (from templates/)
+  - template: baugrenze_chain
+    params:
+      base_layer: Geltungsbereich
+      baugrenze_inset: -3
+      baugrenze_2_inset: -0.4
+      report_dir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"
+
+  # Template: zone_report for each region
+  - template: zone_report
+    params:
+      zone_name: Geltungsbereich West
+      parcel_layer: Parcels
+      report_dir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"
+
+  - template: zone_report
+    params:
+      zone_name: Geltungsbereich East
+      parcel_layer: Parcels
+      report_dir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"

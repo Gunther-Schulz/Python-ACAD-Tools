@@ -1,0 +1,78 @@
+# Administrative boundary layers template
+# Generates Flur, Gemarkung, Gemeinde layers with boundary extraction,
+# duplicate removal, and labels.
+#
+# Usage:
+#   apply:
+#     - template: admin_boundaries
+#       params:
+#         flur_source: "input/flur.shp"
+#         gemarkung_source: "input/gemarkung.shp"
+#         gemeinde_source: "input/gemeinde.shp"
+#         flur_style: flurgrenze          # optional, omit for no style
+#         gemarkung_style: gemarkungsgrenze
+#         gemeinde_style: gemeindegrenze
+
+templates:
+  - name: admin_boundaries
+    params:
+      - flur_source
+      - gemarkung_source
+      - gemeinde_source
+    layers:
+      - name: Flur Input
+        shapeFile: "${flur_source}"
+        label: flurname
+
+      - name: Gemarkung Input
+        shapeFile: "${gemarkung_source}"
+        label: gmkname
+
+      - name: Gemeinde Input
+        shapeFile: "${gemeinde_source}"
+        label: gen
+
+      - name: Flur
+        label: flurname
+        close: false
+        operations:
+          - type: extractBoundary
+            layers:
+              - Flur Input
+          - type: breakAtIntersections
+            tolerance: 0.001
+          - type: removeDuplicateLines
+            tolerance: 0.01
+          - type: simpleLabel
+            layers:
+              - Flur Input
+
+      - name: Gemarkung
+        label: gmkname
+        close: false
+        operations:
+          - type: extractBoundary
+            layers:
+              - Gemarkung Input
+          - type: breakAtIntersections
+            tolerance: 0.001
+          - type: removeDuplicateLines
+            tolerance: 0.01
+          - type: simpleLabel
+            layers:
+              - Gemarkung Input
+
+      - name: Gemeinde
+        label: gen
+        close: false
+        operations:
+          - type: extractBoundary
+            layers:
+              - Gemeinde Input
+          - type: breakAtIntersections
+            tolerance: 0.001
+          - type: removeDuplicateLines
+            tolerance: 0.01
+          - type: simpleLabel
+            layers:
+              - Gemeinde Input

@@ -1,13 +1,17 @@
 geomLayers:
-  # --- Inputs ---
+  # --- Parcels (needed by templates) ---
   - name: Parcels
     shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/parcels.shp"
     label: label
 
+  # --- Other inputs ---
   - name: Forest
     shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/forest.shp"
     operations:
       - type: dissolve
+
+  - name: Biotope
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/biotope.shp"
 
   - name: Utility Line
     shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/utility_line.shp"
@@ -41,30 +45,34 @@ geomLayers:
         joinStyle: mitre
         capStyle: flat
 
-  # --- Test: auto-repair after boolean ops ---
-  - name: Planning Zone
-    operations:
-      - type: copy
-        layers:
-          - name: Parcels
-            values:
-              - "1"
-              - "2"
-      - type: dissolve
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Forest Buffer
-          - Exclude Zone
+# --- Use cross-project templates ---
+apply:
+  # Template: admin_boundaries (from templates/)
+  - template: admin_boundaries
+    params:
+      flur_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/flur.shp"
+      gemarkung_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/gemarkung.shp"
+      gemeinde_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/gemeinde.shp"
 
-  # --- Test: auto-repair opt-out ---
-  - name: Raw Difference
-    operations:
-      - type: copy
-        layers:
-          - Parcels
-      - type: difference
-        reverseDifference: false
-        autoRepair: false
-        layers:
-          - Forest
+  # Template: geltungsbereich (2 regions using the same template)
+  - template: geltungsbereich
+    params:
+      name: West
+      parcel_layer: Parcels
+      parcels:
+        - "1"
+        - "3"
+      flur: "Flur 1"
+      gemarkung: "Testgemarkung"
+      gemeinde: "Testgemeinde"
+
+  - template: geltungsbereich
+    params:
+      name: East
+      parcel_layer: Parcels
+      parcels:
+        - "2"
+        - "4"
+      flur: "Flur 2"
+      gemarkung: "Testgemarkung"
+      gemeinde: "Testgemeinde"

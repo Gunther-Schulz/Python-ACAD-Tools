@@ -1,0 +1,75 @@
+# Baugrenze chain template
+# Creates Baufeld -> Baugrenze (-3m inset) -> Baugrenze 2 (-0.4m further inset)
+# with optional exclusions and area report.
+#
+# Usage:
+#   apply:
+#     - template: baugrenze_chain
+#       params:
+#         base_layer: Geltungsbereich
+#         baugrenze_inset: -3
+#         baugrenze_2_inset: -0.4
+#         report_dir: "/path/to/reports"
+
+templates:
+  - name: baugrenze_chain
+    params:
+      - base_layer
+      - baugrenze_inset
+      - baugrenze_2_inset
+      - report_dir
+    layers:
+      - name: Baufeld
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - "${base_layer}"
+
+      - name: Baugrenze
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baufeld
+            distance: ${baugrenze_inset}
+            joinStyle: mitre
+
+      - name: Baugrenze 2
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baugrenze
+            distance: ${baugrenze_2_inset}
+            joinStyle: mitre
+
+      - name: Baugrenze Report
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: report
+            outputFile: "${report_dir}/baugrenze_report.json"
+            calculate:
+              - area
+              - perimeter
+            decimalPlaces:
+              area: 0
+
+      - name: Baufeldstreifen Report
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            reverseDifference: false
+            layers:
+              - Baugrenze
+          - type: report
+            outputFile: "${report_dir}/baufeldstreifen_report.json"
+            calculate:
+              - area
+              - perimeter
+            decimalPlaces:
+              area: 0

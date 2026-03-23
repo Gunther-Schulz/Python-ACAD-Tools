@@ -1,0 +1,44 @@
+# Geltungsbereich from parcels template
+# Selects parcels by ID, filters by admin boundaries, dissolves.
+#
+# Usage:
+#   apply:
+#     - template: geltungsbereich
+#       params:
+#         name: NW
+#         parcel_layer: Parcel
+#         parcels:
+#           - "1"
+#           - "2"
+#         flur: "Flur 1"
+#         gemarkung: "Groß Plasten"
+#         gemeinde: "Groß Plasten"
+
+templates:
+  - name: geltungsbereich
+    params:
+      - name
+      - parcel_layer
+      - parcels
+      - flur
+      - gemarkung
+      - gemeinde
+    layers:
+      - name: "Geltungsbereich ${name}"
+        operations:
+          - type: copy
+            layers:
+              - name: "${parcel_layer}"
+                values: ${parcels}
+          - type: filterByIntersection
+            layers:
+              - name: Flur Input
+                values:
+                  - "${flur}"
+              - name: Gemarkung Input
+                values:
+                  - "${gemarkung}"
+              - name: Gemeinde Input
+                values:
+                  - "${gemeinde}"
+          - type: dissolve
