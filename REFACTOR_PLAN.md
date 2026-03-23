@@ -273,10 +273,10 @@ With multi-file splitting, the remaining ~1150 lines would be across 5-6 files o
 
 ---
 
-## Still to decide
-- Template conditionals: how to handle optional parts (e.g., Wege only in some regions). Options: simple if/else in templates, template variants, or leave the 20% as regular layers outside the template.
-- Where other YAML files live (dxf_operations.yaml, dxf_transfer.yaml, etc.) -- stay top-level alongside project.yaml, or get their own directory?
-- Inline buffer references (`Wald Input | buffer(10)`) -- eliminates buffer-only intermediate layers. Useful but introduces a mini-syntax inside YAML strings. Decide if the complexity is worth it.
+## Decided against
+- **Template conditionals**: Not needed. Templates handle the 80% common pattern; the remaining 20% stays as regular layers. If a template needs conditionals, it should be split into simpler templates instead.
+- **Moving other YAML files**: dxf_operations.yaml, dxf_transfer.yaml, generated/, interactive/ stay where they are. Their current locations already make sense.
+- **Inline buffer references** (`Wald Input | buffer(10)`): Not worth it. Introduces a mini-expression parser for marginal line savings. Buffer-only layers are already shorter with bufferDefaults.
 
 ## Future vision
 Web frontend where users chat with AI to manage GIS projects. The AI calls Python-ACAD-Tools programmatically. This requires a clean API layer on top of the engine.
