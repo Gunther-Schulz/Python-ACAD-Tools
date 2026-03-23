@@ -33,7 +33,13 @@ def create_simple_label_layer(all_layers, project_settings, crs, layer_name, ope
     log_debug(f"Creating simple label layer for {layer_name}")
 
     # Get source layer configuration
-    source_layer_name = operation.get('sourceLayer', layer_name)
+    # Priority: explicit sourceLayer > first entry in layers > current layer name
+    source_layer_name = operation.get('sourceLayer')
+    if not source_layer_name and 'layers' in operation:
+        first_layer = operation['layers'][0]
+        source_layer_name = first_layer['name'] if isinstance(first_layer, dict) else first_layer
+    if not source_layer_name:
+        source_layer_name = layer_name
     label_column = operation.get('labelColumn')
 
     # If no explicit labelColumn is provided, check for a label attribute in the layer config

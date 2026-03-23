@@ -28,6 +28,7 @@ templates:
                 as: parcel_area
                 decimalPlaces: 0
           - type: intersection
+            autoRepair: false
             layers:
               - "${zone_name}"
           - type: filterGeometry
