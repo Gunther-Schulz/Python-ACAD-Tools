@@ -1,7 +1,6 @@
 import yaml
 import os
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
-from src.dxf_processor import DXFProcessor
 import traceback
 
 # Default values for project settings
@@ -19,7 +18,6 @@ class ProjectLoader:
         self.project_settings = {}
         self.load_global_settings()
         self.load_project_settings()
-        self.load_dxf_operations()
         self.load_color_mapping()
         self.load_styles()
 
@@ -220,7 +218,7 @@ class ProjectLoader:
         self.project_settings = {
             **main_settings,
             'geomLayers': geom_layers.get('geomLayers', []),
-            'legends': legends.get('legends', []),
+            'legends': self._apply_legend_defaults(legends),
             'viewports': viewports.get('viewports', []),
             'blocks': block_inserts.get('blocks', []),
             'texts': text_inserts.get('texts', []) if text_inserts else [],
@@ -290,15 +288,6 @@ class ProjectLoader:
                 for operation in layer['operations']:
                     operation['type'] = 'wms'
 
-        # Load DXF operations settings
-        dxf_operations_path = os.path.join(self.project_dir, 'dxf_operations.yaml')
-        if os.path.exists(dxf_operations_path):
-            with open(dxf_operations_path, 'r', encoding='utf-8') as f:
-                dxf_operations_settings = yaml.safe_load(f)
-                if dxf_operations_settings and 'dxfOperations' in dxf_operations_settings:
-                    self.project_settings['dxfOperations'] = dxf_operations_settings['dxfOperations']
-                    log_debug(f"Loaded DXF operations: {len(dxf_operations_settings['dxfOperations'].get('extracts', []))} extracts, "
-                             f"{len(dxf_operations_settings['dxfOperations'].get('transfers', []))} transfers")
 
     def load_color_mapping(self):
         """Load color mapping from aci_colors.yaml"""
@@ -346,6 +335,28 @@ class ProjectLoader:
         wms_layers = wmts_wms_config.get('wmsLayers', [])
 
         return wmts_layers, wms_layers
+
+    def _apply_legend_defaults(self, legends_data):
+        """Apply legendDefaults to each legend config. Each legend can override."""
+        import copy
+        legends_list = legends_data.get('legends', [])
+        defaults = legends_data.get('legendDefaults', {})
+        if not defaults:
+            return legends_list
+
+        result = []
+        for legend in legends_list:
+            merged = copy.deepcopy(defaults)
+            # Deep merge: legend values override defaults
+            for key, value in legend.items():
+                if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
+                    merged[key].update(value)
+                else:
+                    merged[key] = value
+            result.append(merged)
+            log_debug(f"Applied legend defaults to '{legend.get('name', legend.get('id', 'unnamed'))}'")
+
+        return result
 
     def process_operations(self, layer):
         """Process and validate operations in a layer"""
@@ -466,15 +477,6 @@ class ProjectLoader:
             return []
 
         return result
-
-    def load_dxf_operations(self):
-        """Initialize DXFProcessor with loaded operations"""
-        if 'dxfOperations' in self.project_settings:
-            self.dxf_processor = DXFProcessor(self)
-            log_debug("DXFProcessor initialized with loaded operations")
-        else:
-            log_info("No DXF operations found in project settings")
-            self.dxf_processor = None  # Set to None if no operations
 
     def write_yaml_file(self, filename, data):
         """Write data to a YAML file in the project directory with atomic operations"""

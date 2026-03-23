@@ -99,10 +99,14 @@ class UnifiedSyncProcessor(ABC):
         Returns:
             dict: Dictionary of processed entities
         """
-        entity_configs = self._get_entity_configs()
+        all_configs = self._get_entity_configs()
+        entity_configs = [c for c in all_configs if c.get('enabled', True)]
+        skipped = len(all_configs) - len(entity_configs)
         processed_entities = {}
         yaml_updated = False
 
+        if skipped:
+            log_debug(f"Skipped {skipped} disabled {self.entity_type} configurations")
         log_debug(f"Processing {len(entity_configs)} {self.entity_type} configurations")
 
         # Step 0: Initialize sync metadata for auto sync entities

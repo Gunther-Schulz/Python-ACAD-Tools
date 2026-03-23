@@ -30,7 +30,6 @@ from src.block_insert_manager import BlockInsertManager
 from src.text_insert_manager import TextInsertManager
 # Enhanced layer processor replaces legacy GeomLayerSyncManager functionality
 from src.reduced_dxf_creator import ReducedDXFCreator
-from src.dxf_processor import DXFProcessor
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -45,7 +44,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blocks', [])
         self.style_manager = StyleManager(project_loader)
-        self.dxf_processor = project_loader.dxf_processor
+        self.dxf_processor = None  # Deprecated: dxf_processor removed
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -161,14 +160,7 @@ class DXFExporter:
                 with profile_operation("Load/Create DXF Document"):
                     doc = self._load_or_create_dxf(skip_dxf_processor=True)  # Load without processing
 
-                # First, process DXF operations (if any)
-                if not skip_dxf_processor and self.project_loader.dxf_processor:
-                    with profile_operation("DXF Operations Processing"):
-                        log_info("Processing DXF operations first...")
-                        self.project_loader.dxf_processor.process_all(doc)
-                        log_info("DXF operations completed")
-
-                # Then proceed with geometry layers and other processing
+                # Proceed with geometry layers and other processing
                 with profile_operation("Document Initialization"):
                     self.layer_processor.set_dxf_document(doc)
                     self.loaded_styles = initialize_document(doc)
@@ -239,11 +231,6 @@ class DXFExporter:
             doc = ezdxf.readfile(self.dxf_filename)
             log_debug(f"Loaded existing DXF file: {self.dxf_filename}")
 
-            # Run DXF processor on existing document only if not skipped
-            if not skip_dxf_processor and self.project_loader.dxf_processor:
-                log_info("DXF processor found, running operations on existing document")
-                self.project_loader.dxf_processor.process_all(doc)
-
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
@@ -263,11 +250,6 @@ class DXFExporter:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_debug(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
-
-        # Run DXF processor on new document only if not skipped
-        if doc and not os.path.exists(self.dxf_filename) and not skip_dxf_processor and self.project_loader.dxf_processor:
-            log_debug("Running DXF processor on new document")
-            self.project_loader.dxf_processor.process_all(doc)
 
         # Register XDATA app immediately after document load/create - MUST happen before any sync operations
         if doc:
@@ -1025,6 +1007,9 @@ class DXFExporter:
         # Pre-validate and filter configs
         valid_configs = []
         for config in path_arrays:
+            if not config.get('enabled', True):
+                log_debug(f"Skipping disabled path array: {config.get('name', 'unnamed')}")
+                continue
             name = config.get('name')
             source_layer_name = config.get('sourceLayer')
             sync_mode = config.get('sync', 'skip')

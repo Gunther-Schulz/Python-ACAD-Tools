@@ -341,6 +341,8 @@ class ReducedDXFCreator:
             return
 
         for array in self.project_settings.get('pathArrays', []):
+            if not array.get('enabled', True):
+                continue
             if array.get('layer') in reduced_layers:
                 create_path_array(reduced_msp, array, self.project_loader)
                 entity_counts['pathArrays'] += 1

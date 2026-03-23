@@ -49,6 +49,10 @@ class LegendCreator:
 
     def create_legend(self):
         for legend_config in self.legends_config:
+            if not legend_config.get('enabled', True):
+                log_debug(f"Skipping disabled legend: {legend_config.get('name', legend_config.get('id', 'unnamed'))}")
+
+                continue
             self.apply_legend_config(legend_config)
             self.create_single_legend(legend_config)
 
@@ -79,7 +83,7 @@ class LegendCreator:
             log_debug(f"Skipping disabled legend: {legend_config.get('id', 'unnamed')}")
             return
 
-        legend_id = legend_config.get('id', 'default')
+        legend_id = legend_config.get('name', legend_config.get('id', 'default'))
         self.clean_legend_layers(legend_id)
         self.current_y = self.position['y']
         self.create_legend_title(legend_config)
@@ -91,7 +95,7 @@ class LegendCreator:
         remove_entities_by_layer(self.msp, f"Legend_{legend_id}_Title", self.script_identifier)
 
         # Find the current legend config
-        current_legend = next((legend for legend in self.legends_config if legend.get('id') == legend_id), None)
+        current_legend = next((legend for legend in self.legends_config if legend.get('name', legend.get('id')) == legend_id), None)
         if current_legend:
             # Get groups from the current legend
             for group in current_legend.get('groups', []):
@@ -102,7 +106,7 @@ class LegendCreator:
     def create_legend_title(self, legend_config):
         title = legend_config.get('title', '')
         subtitle = legend_config.get('subtitle', '')
-        legend_id = legend_config.get('id', 'default')
+        legend_id = legend_config.get('name', legend_config.get('id', 'default'))
         layer_name = self.get_sanitized_layer_name(f"Legend_{legend_id}_Title")
 
         # First ensure layer exists
