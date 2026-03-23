@@ -4,14 +4,13 @@ crs: EPSG:25833
 useFolderPrefix: false
 dxfFilename: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/test_output.dxf"
 shapefileOutputDir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"
+autoConflictResolution: skip
 
-# Test: buffer defaults (new feature)
 bufferDefaults:
   joinStyle: round
   capStyle: round
   quadSegs: 32
 
-# Test: auto-repair after boolean ops (new feature)
 autoRepair:
   removeDegenerateSpikes:
     tolerance: 0.01

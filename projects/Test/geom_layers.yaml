@@ -1,10 +1,9 @@
 geomLayers:
-  # --- Parcels (needed by templates) ---
+  # --- Inputs ---
   - name: Parcels
     shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/parcels.shp"
     label: label
 
-  # --- Other inputs ---
   - name: Forest
     shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/forest.shp"
     operations:
@@ -45,16 +44,49 @@ geomLayers:
         joinStyle: mitre
         capStyle: flat
 
-# --- Use cross-project templates ---
+  # --- Test: auto-repair opt-out on a difference ---
+  - name: Raw Difference
+    operations:
+      - type: copy
+        layers:
+          - Parcels
+      - type: difference
+        reverseDifference: false
+        autoRepair: false
+        layers:
+          - Forest
+
+  # --- Test: style extends (testZone extends baugrenze, adds green color) ---
+  - name: Test Zone Boundary
+    style: testZone
+    operations:
+      - type: copy
+        layers:
+          - Parcels
+
+# --- Project-local template definition + usage ---
+templates:
+  - name: buffer_variant
+    params:
+      - variant_name
+      - source
+      - dist
+    layers:
+      - name: "${variant_name}"
+        operations:
+          - type: buffer
+            layers:
+              - "${source}"
+            distance: ${dist}
+
 apply:
-  # Template: admin_boundaries (from templates/)
+  # Cross-project templates
   - template: admin_boundaries
     params:
       flur_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/flur.shp"
       gemarkung_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/gemarkung.shp"
       gemeinde_source: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/gemeinde.shp"
 
-  # Template: geltungsbereich (2 regions using the same template)
   - template: geltungsbereich
     params:
       name: West
@@ -76,3 +108,16 @@ apply:
       flur: "Flur 2"
       gemarkung: "Testgemarkung"
       gemeinde: "Testgemeinde"
+
+  # Project-local template
+  - template: buffer_variant
+    params:
+      variant_name: Biotope Buffer 5m
+      source: Biotope
+      dist: 5
+
+  - template: buffer_variant
+    params:
+      variant_name: Biotope Buffer 10m
+      source: Biotope
+      dist: 10
