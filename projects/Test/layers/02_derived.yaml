@@ -1,0 +1,31 @@
+geomLayers:
+  # --- Test: multi-file splitting (this layer references layers from geom_layers.yaml) ---
+  - name: Baugrenze
+    operations:
+      - type: buffer
+        layers:
+          - Planning Zone
+        distance: -3
+        joinStyle: mitre
+
+  # --- Test: hatch as layer property ---
+  - name: Baufeld
+    hatch:
+      - style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Planning Zone
+
+  # --- Test: report ---
+  - name: Planning Zone Report
+    operations:
+      - type: copy
+        layers:
+          - Planning Zone
+      - type: report
+        outputFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/planning_zone_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0

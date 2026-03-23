@@ -1,0 +1,24 @@
+exportFormat: dxf
+dxfVersion: R2018
+crs: EPSG:25833
+dxfFilename: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/test_output.dxf"
+shapefileOutputDir: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated"
+
+# Test: buffer defaults (new feature)
+bufferDefaults:
+  joinStyle: round
+  capStyle: round
+  quadSegs: 32
+
+# Test: auto-repair after boolean ops (new feature)
+autoRepair:
+  removeDegenerateSpikes:
+    tolerance: 0.01
+    simplifyTolerance: 0.05
+    minSpikeLength: 0.1
+  removeSliversErosion:
+    erosionDistance: 0.2
+  repair:
+    minArea: 1
+    removeEmptyGeometries: true
+    removeFailures: true

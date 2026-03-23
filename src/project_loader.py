@@ -52,6 +52,21 @@ class ProjectLoader:
         # Load root level geom_layers.yaml (main file)
         geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
 
+        # Load additional layer files from layers/ directory
+        layers_dir = os.path.join(self.project_dir, 'layers')
+        if os.path.isdir(layers_dir):
+            import glob
+            layer_files = sorted(glob.glob(os.path.join(layers_dir, '*.yaml')))
+            for layer_file in layer_files:
+                filename = os.path.relpath(layer_file, self.project_dir)
+                extra_layers = self.load_yaml_file(filename, required=False) or {}
+                extra_list = extra_layers.get('geomLayers', [])
+                if extra_list:
+                    if 'geomLayers' not in geom_layers:
+                        geom_layers['geomLayers'] = []
+                    geom_layers['geomLayers'].extend(extra_list)
+                    log_debug(f"Loaded {len(extra_list)} layers from {filename}")
+
         # Load generated/ folder configurations (traditional push/skip only)
         legends = self.load_yaml_file('generated/legends.yaml', required=False) or {}
         path_arrays = self.load_yaml_file('generated/path_arrays.yaml', required=False) or {}
@@ -167,6 +182,29 @@ class ProjectLoader:
                            f"The first definition will be used, subsequent definitions will be ignored.")
             else:
                 layer_names[name] = idx
+
+        # Expand 'hatch' property into synthetic applyHatch layers
+        expanded_layers = []
+        for layer in geom_layers.get('geomLayers', []):
+            expanded_layers.append(layer)
+            if 'hatch' in layer:
+                for hatch_entry in layer['hatch']:
+                    hatch_style = hatch_entry.get('style')
+                    if hatch_style:
+                        hatch_layer_name = hatch_entry.get('name', f"{layer['name']} Schraffur")
+                        synthetic_layer = {
+                            'name': hatch_layer_name,
+                            'style': hatch_style,
+                            'applyHatch': {
+                                'layers': [layer['name']]
+                            },
+                        }
+                        # Inherit sync from parent layer
+                        if 'sync' in layer:
+                            synthetic_layer['sync'] = layer['sync']
+                        expanded_layers.append(synthetic_layer)
+                        log_debug(f"Expanded hatch property on '{layer['name']}' into layer '{hatch_layer_name}'")
+        geom_layers['geomLayers'] = expanded_layers
 
         # Merge all settings
         self.project_settings = {

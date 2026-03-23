@@ -1,0 +1,70 @@
+geomLayers:
+  # --- Inputs ---
+  - name: Parcels
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/parcels.shp"
+    label: label
+
+  - name: Forest
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/forest.shp"
+    operations:
+      - type: dissolve
+
+  - name: Utility Line
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/utility_line.shp"
+
+  - name: Exclude Zone
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/exclude.shp"
+
+  # --- Test: enabled: false ---
+  - name: Disabled Layer
+    enabled: false
+    shapeFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/input/parcels.shp"
+    operations:
+      - type: buffer
+        distance: 999
+
+  # --- Test: buffer defaults (should use project-level round/round/32) ---
+  - name: Forest Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Forest
+        distance: 10
+
+  # --- Test: buffer override (should use mitre, not project default) ---
+  - name: Utility Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Utility Line
+        distance: 5
+        joinStyle: mitre
+        capStyle: flat
+
+  # --- Test: auto-repair after boolean ops ---
+  - name: Planning Zone
+    operations:
+      - type: copy
+        layers:
+          - name: Parcels
+            values:
+              - "1"
+              - "2"
+      - type: dissolve
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Forest Buffer
+          - Exclude Zone
+
+  # --- Test: auto-repair opt-out ---
+  - name: Raw Difference
+    operations:
+      - type: copy
+        layers:
+          - Parcels
+      - type: difference
+        reverseDifference: false
+        autoRepair: false
+        layers:
+          - Forest

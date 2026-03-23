@@ -80,6 +80,9 @@ class LayerProcessor:
 
         # Process geometric layers
         for layer in self.project_settings['geomLayers']:
+            if not layer.get('enabled', True):
+                log_debug(f"Skipping disabled layer: {layer['name']}")
+                continue
             layer_name = layer['name']
             self.process_layer(layer, self.processed_layers)
             if shapefile_output_dir:
@@ -134,6 +137,9 @@ class LayerProcessor:
                     break
             if layer_obj is None:
                 log_warning(f"Layer '{layer_name}' not found in geomLayers configuration")
+                return
+            if not layer_obj.get('enabled', True):
+                log_debug(f"Skipping disabled layer: {layer_name}")
                 return
         else:
             layer_name = layer['name']
@@ -364,8 +370,8 @@ class LayerProcessor:
         # Check for unrecognized keys
         recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'dxfSource', 'type', 'sourceLayer',
                           'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
-                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 
-                          'saveToLagefaktor', 'entityTypes', 'preprocessors'}
+                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot',
+                          'saveToLagefaktor', 'entityTypes', 'preprocessors', 'enabled', 'hatch'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -571,6 +577,14 @@ class LayerProcessor:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
 
+        # Auto-repair after boolean operations
+        auto_repair_ops = {'difference', 'intersection', 'dissolve'}
+        if result is not None and op_type in auto_repair_ops and operation.get('autoRepair', True):
+            auto_repair_config = self.project_settings.get('autoRepair')
+            if auto_repair_config:
+                self.all_layers[layer_name] = result
+                result = self._apply_auto_repair(layer_name, auto_repair_config)
+
         if result is not None:
             self.all_layers[layer_name] = result
             if self.plot_ops:
@@ -580,6 +594,48 @@ class LayerProcessor:
         if 'operations' in operation:
             for temp_layer in [l for l in self.all_layers.keys() if l.startswith(f"{layer_name}_temp_")]:
                 del self.all_layers[temp_layer]
+
+        return result
+
+    def _apply_auto_repair(self, layer_name, auto_repair_config):
+        """Apply auto-repair operations after boolean ops using project-level settings."""
+        result = self.all_layers.get(layer_name)
+        if result is None:
+            return None
+
+        log_debug(f"Applying auto-repair to layer '{layer_name}'")
+
+        if 'removeDegenerateSpikes' in auto_repair_config:
+            repair_op = {'type': 'removeDegenerateSpikes', 'layers': [layer_name],
+                         **auto_repair_config['removeDegenerateSpikes']}
+            r = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
+            if r is not None:
+                self.all_layers[layer_name] = r
+                result = r
+
+        if 'removeProtrusions' in auto_repair_config:
+            repair_op = {'type': 'removeProtrusions', 'layers': [layer_name],
+                         **auto_repair_config['removeProtrusions']}
+            r = create_remove_protrusions_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
+            if r is not None:
+                self.all_layers[layer_name] = r
+                result = r
+
+        if 'removeSliversErosion' in auto_repair_config:
+            repair_op = {'type': 'removeSliversErosion', 'layers': [layer_name],
+                         **auto_repair_config['removeSliversErosion']}
+            r = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
+            if r is not None:
+                self.all_layers[layer_name] = r
+                result = r
+
+        if 'repair' in auto_repair_config:
+            repair_op = {'type': 'repair', 'layers': [layer_name],
+                         **auto_repair_config['repair']}
+            r = create_repair_layer(self.all_layers, self.project_settings, self.crs, layer_name, repair_op)
+            if r is not None:
+                self.all_layers[layer_name] = r
+                result = r
 
         return result
 

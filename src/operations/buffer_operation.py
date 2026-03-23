@@ -10,15 +10,18 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     log_debug(f"Creating buffer layer: {layer_name}")
     log_debug(f"Operation details: {operation}")
 
+    # Project-level buffer defaults, overridden by operation-level values
+    buffer_defaults = project_settings.get('bufferDefaults', {})
+
     buffer_distance = operation.get('distance', 0)
     buffer_field = operation.get('distanceField', None)
     buffer_mode = operation.get('mode', 'normal')
-    join_style = operation.get('joinStyle', 'mitre')
-    cap_style = operation.get('capStyle', 'square')
+    join_style = operation.get('joinStyle', buffer_defaults.get('joinStyle', 'mitre'))
+    cap_style = operation.get('capStyle', buffer_defaults.get('capStyle', 'square'))
     start_cap_style = operation.get('startCapStyle', cap_style)
     end_cap_style = operation.get('endCapStyle', cap_style)
-    quad_segs = operation.get('quadSegs', 16)  # Default to 16 for smoother curves (QGIS default)
-    mitre_limit = operation.get('mitreLimit', 2.0)  # Default mitre limit - balances geometry with practical limits
+    quad_segs = operation.get('quadSegs', buffer_defaults.get('quadSegs', 16))
+    mitre_limit = operation.get('mitreLimit', buffer_defaults.get('mitreLimit', 2.0))
 
     join_style_map = {
         'round': 1,
