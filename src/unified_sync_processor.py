@@ -4,7 +4,12 @@ from src.sync_hash_utils import (
     detect_entity_changes, resolve_sync_conflict, update_sync_metadata,
     ensure_sync_metadata_complete, clean_entity_config_for_yaml_output
 )
-from src.dxf_utils import XDATA_APP_ID, attach_custom_data
+from src.dxf_utils import (
+    XDATA_APP_ID, XDATA_ENTITY_NAME_KEY, attach_custom_data,
+    remove_entities_by_layer, ensure_layer_exists, is_created_by_script,
+    detect_entity_paperspace, extract_handle_from_xdata,
+    _extract_sync_mode_from_xdata, delete_entities_clean
+)
 
 
 class UnifiedSyncProcessor(ABC):
@@ -392,7 +397,6 @@ class UnifiedSyncProcessor(ABC):
         spaces.extend(layout for layout in doc.layouts if layout.name != 'Model')
         
         for space in spaces:
-            from src.dxf_utils import remove_entities_by_layer
             remove_entities_by_layer(space, layer_name, self.script_identifier, skip_entity_names)
 
     def _get_sync_direction(self, config):
@@ -481,7 +485,6 @@ class UnifiedSyncProcessor(ABC):
             config['_sync']['dxf_handle'] = new_handle
 
             # Update XDATA with new handle
-            from src.dxf_utils import attach_custom_data
             # Re-attach metadata with correct handle
             attach_custom_data(
                 entity,
@@ -516,7 +519,6 @@ class UnifiedSyncProcessor(ABC):
             entity_name = config.get('name', 'unnamed')
 
             # Re-run change detection with recovered entity
-            from src.sync_hash_utils import detect_entity_changes
             changes = detect_entity_changes(config, recovered_entity, self.entity_type, self)
 
             # Now process normally based on changes
@@ -526,7 +528,6 @@ class UnifiedSyncProcessor(ABC):
                 result = self._sync_push(doc, space, config)
                 if result:
                     entity_handle = str(result.dxf.handle)
-                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -536,7 +537,6 @@ class UnifiedSyncProcessor(ABC):
                 result = self._sync_pull(doc, space, config)
                 if result and result.get('yaml_updated'):
                     entity_handle = str(recovered_entity.dxf.handle)
-                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                 return result if result else None
 
@@ -550,7 +550,6 @@ class UnifiedSyncProcessor(ABC):
                 # No changes detected - just update metadata and continue
                 log_info(f"🔄 RECOVERED+SYNC: Entity '{entity_name}' recovered, no changes detected")
                 entity_handle = str(recovered_entity.dxf.handle)
-                from src.sync_hash_utils import update_sync_metadata
                 update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': recovered_entity, 'yaml_updated': True}
 
@@ -578,7 +577,6 @@ class UnifiedSyncProcessor(ABC):
         log_warning(f"⚠️  SYNC CONFLICT: Both YAML and DXF changed for '{entity_name}'")
 
         # Use the existing conflict resolution system
-        from src.sync_hash_utils import resolve_sync_conflict
         resolution = resolve_sync_conflict(entity_name, config, dxf_entity, self.project_settings)
 
         if resolution == 'yaml_wins':
@@ -586,7 +584,6 @@ class UnifiedSyncProcessor(ABC):
             result = self._sync_push(doc, space, config)
             if result:
                 entity_handle = str(result.dxf.handle)
-                from src.sync_hash_utils import update_sync_metadata
                 update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
             return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -595,7 +592,6 @@ class UnifiedSyncProcessor(ABC):
             result = self._sync_pull(doc, space, config)
             if result and result.get('yaml_updated'):
                 entity_handle = str(dxf_entity.dxf.handle) if dxf_entity else None
-                from src.sync_hash_utils import update_sync_metadata
                 update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
             return result if result else None
 
@@ -630,7 +626,6 @@ class UnifiedSyncProcessor(ABC):
     def _update_entity_xdata_name(self, entity, new_name):
         """Update entity name in XDATA."""
         try:
-            from src.dxf_utils import XDATA_APP_ID, XDATA_ENTITY_NAME_KEY
 
             # Get current XDATA
             xdata = entity.get_xdata(XDATA_APP_ID)
@@ -706,7 +701,6 @@ class UnifiedSyncProcessor(ABC):
         existing_entity = self._find_entity_by_name(doc, entity_name)
 
         # Detect changes using hash comparison
-        from src.sync_hash_utils import detect_entity_changes
         changes = detect_entity_changes(config, existing_entity, self.entity_type, self)
 
         # State-based sync logic
@@ -744,7 +738,6 @@ class UnifiedSyncProcessor(ABC):
                         result = self._sync_push(doc, space, config)
                         if result:
                             entity_handle = str(result.dxf.handle)
-                            from src.sync_hash_utils import update_sync_metadata
                             update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                         return {'entity': result, 'yaml_updated': True} if result else None
                 else:
@@ -773,7 +766,6 @@ class UnifiedSyncProcessor(ABC):
                 result = self._sync_push(doc, space, config)
                 if result:
                     entity_handle = str(result.dxf.handle)
-                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -785,7 +777,6 @@ class UnifiedSyncProcessor(ABC):
                 result = self._sync_push(doc, space, config)
                 if result:
                     entity_handle = str(result.dxf.handle)
-                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -796,7 +787,6 @@ class UnifiedSyncProcessor(ABC):
                 if result and result.get('yaml_updated'):
                     # Get handle from existing entity for tracking
                     entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
-                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                 return result if result else None
 
@@ -804,7 +794,6 @@ class UnifiedSyncProcessor(ABC):
                 # Both changed - resolve conflict using settings
                 log_info(f"⚠️  AUTO: Conflict detected for '{entity_name}' - both YAML and DXF changed")
 
-                from src.sync_hash_utils import resolve_sync_conflict
                 resolution = resolve_sync_conflict(entity_name, config, existing_entity, self.project_settings)
 
                 if resolution == 'yaml_wins':
@@ -812,7 +801,6 @@ class UnifiedSyncProcessor(ABC):
                     result = self._sync_push(doc, space, config)
                     if result:
                         entity_handle = str(result.dxf.handle)
-                        from src.sync_hash_utils import update_sync_metadata
                         update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                     return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -821,7 +809,6 @@ class UnifiedSyncProcessor(ABC):
                     result = self._sync_pull(doc, space, config)
                     if result and result.get('yaml_updated'):
                         entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
-                        from src.sync_hash_utils import update_sync_metadata
                         update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                     return result if result else None
 
@@ -832,7 +819,6 @@ class UnifiedSyncProcessor(ABC):
             else:
                 # No changes detected - both exist and are synchronized
                 # However, check if XDATA sync_mode needs updating (e.g., switched from skip → auto)
-                from src.dxf_utils import _extract_sync_mode_from_xdata
                 dxf_sync_mode = _extract_sync_mode_from_xdata(existing_entity)
                 yaml_sync_mode = self._get_sync_direction(config)
                 
@@ -894,7 +880,6 @@ class UnifiedSyncProcessor(ABC):
             # CRITICAL: Populate complete sync metadata for discovered entities
             content_hash = self._calculate_entity_hash(entity_config)
             entity_handle = str(entity.dxf.handle)
-            from src.sync_hash_utils import update_sync_metadata
             update_sync_metadata(entity_config, content_hash, 'dxf', entity_handle=entity_handle)
 
             log_info(f"🔍 Discovered new {self.entity_type} entity: '{entity_name}' on layer '{entity.dxf.layer}' with complete sync metadata")
@@ -1138,7 +1123,6 @@ class UnifiedSyncProcessor(ABC):
         # For existing entities, verify config matches actual location
         if '_sync' in config and 'dxf_handle' in config['_sync']:
             try:
-                from src.dxf_utils import detect_entity_paperspace
                 entity_handle = config['_sync']['dxf_handle']
                 # Use doc.entitydb to get entity (works for all spaces/layouts)
                 entity = doc.entitydb.get(entity_handle)
@@ -1167,7 +1151,6 @@ class UnifiedSyncProcessor(ABC):
         Returns:
             str: The layer name that was ensured to exist
         """
-        from src.dxf_utils import ensure_layer_exists
 
         layer_name = self._resolve_entity_layer(config)
         ensure_layer_exists(doc, layer_name)
@@ -1193,7 +1176,6 @@ class UnifiedSyncProcessor(ABC):
             sync_mode = self._get_sync_direction(config)
 
             # Use unified XDATA function with content hash, handle, and sync mode
-            from src.dxf_utils import attach_custom_data
             attach_custom_data(
                 entity,
                 self.script_identifier,
@@ -1261,7 +1243,6 @@ class UnifiedSyncProcessor(ABC):
                 return False
 
             # Extract stored handle from XDATA
-            from src.dxf_utils import extract_handle_from_xdata
             stored_handle = extract_handle_from_xdata(entity)
             actual_handle = str(entity.dxf.handle)
 
@@ -1296,7 +1277,6 @@ class UnifiedSyncProcessor(ABC):
             str: Entity name or 'unnamed' if not found
         """
         try:
-            from src.dxf_utils import XDATA_ENTITY_NAME_KEY
 
             xdata = entity.get_xdata(XDATA_APP_ID)
             if not xdata:
@@ -1411,7 +1391,6 @@ class UnifiedSyncProcessor(ABC):
                     continue
                 
                 # Check current XDATA sync_mode
-                from src.dxf_utils import _extract_sync_mode_from_xdata
                 dxf_sync_mode = _extract_sync_mode_from_xdata(entity)
                 
                 # Only update if XDATA sync_mode differs from 'skip'
@@ -1467,7 +1446,6 @@ class UnifiedSyncProcessor(ABC):
         orphaned_entities = []
 
         try:
-            from src.dxf_utils import is_created_by_script, _extract_sync_mode_from_xdata
 
             # CRITICAL: Search ALL spaces (modelspace + all layouts), not just the passed space
             # The space parameter is kept for backward compatibility but we search everywhere
@@ -1524,7 +1502,6 @@ class UnifiedSyncProcessor(ABC):
     def _auto_delete_orphaned_entities(self, orphaned_entities):
         """Automatically delete orphaned entities."""
         try:
-            from src.dxf_utils import delete_entities_clean
 
             deleted_count = delete_entities_clean(orphaned_entities)
             log_info(f"Auto-deleted {deleted_count} orphaned {self.entity_type} entities")
@@ -1553,7 +1530,6 @@ class UnifiedSyncProcessor(ABC):
 
         if response == 'y':
             try:
-                from src.dxf_utils import delete_entities_clean
 
                 deleted_count = delete_entities_clean(orphaned_entities)
                 log_info(f"Confirmed deletion of {deleted_count} orphaned {self.entity_type} entities")

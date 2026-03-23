@@ -1,18 +1,20 @@
-import traceback
-# from src.dump_to_shape import merge_dxf_layer_to_shapefile
-from src.project_loader import ProjectLoader
-from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
-import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
-import ezdxf
 import math
-from geopandas import GeoSeries
 import os
 import shutil
-import fiona
-from src.style_manager import StyleManager
+import traceback
 
+import ezdxf
+import fiona
+import geopandas as gpd
+from geopandas import GeoSeries
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
+
+from src.dxf_utils import read_cad_layer_to_geodataframe
+from src.operations.registry import get_operation
+from src.project_loader import ProjectLoader
 from src.shapefile_utils import write_shapefile
+from src.style_manager import StyleManager
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -157,7 +159,6 @@ class LayerProcessor:
             entity_types = layer_obj.get('entityTypes', None)
 
             # Read geometry from the CAD layer
-            from src.dxf_utils import read_cad_layer_to_geodataframe
             cad_geometry = read_cad_layer_to_geodataframe(
                 self.dxf_doc,
                 layer_name,
@@ -175,7 +176,6 @@ class LayerProcessor:
         except Exception as e:
             log_error(f"Error reading CAD layer '{layer_name}' in pull mode: {str(e)}")
             # Create empty GeoDataFrame as fallback
-            import geopandas as gpd
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def _load_dxf_source(self, layer_name, dxf_source_config):
@@ -186,8 +186,6 @@ class LayerProcessor:
             layer_name: Name of the layer to create
             dxf_source_config: Dictionary with 'file', 'layer', and optional 'entityTypes', 'preprocessors'
         """
-        import ezdxf
-        import geopandas as gpd
         from src.utils import resolve_path
         from src.preprocessors.block_exploder import explode_blocks
         from src.preprocessors.circle_extractor import extract_circle_centers
@@ -288,7 +286,6 @@ class LayerProcessor:
                 log_debug(f"After entity type filter: {len(entities)} entities")
             
             # Convert entities to GeoDataFrame
-            from src.dxf_utils import read_cad_layer_to_geodataframe
             from src.dump_to_shape import convert_entity_to_geometry
             from shapely.geometry import Point
             
@@ -371,7 +368,6 @@ class LayerProcessor:
 
         if 'attributes' in layer_obj:
             if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
-                import geopandas as gpd
                 self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
             gdf = self.all_layers[layer_name]
@@ -441,7 +437,6 @@ class LayerProcessor:
             operation['layers'] = [layer_name]
 
         # Perform the operation via registry
-        from src.operations.registry import get_operation
         op_info = get_operation(op_type)
         if op_info is None:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
@@ -485,7 +480,6 @@ class LayerProcessor:
 
     def _apply_auto_repair(self, layer_name, auto_repair_config):
         """Apply auto-repair operations after boolean ops using project-level settings."""
-        from src.operations.registry import get_operation
 
         result = self.all_layers.get(layer_name)
         if result is None:

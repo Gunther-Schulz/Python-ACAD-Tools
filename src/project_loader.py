@@ -1,7 +1,11 @@
-import yaml
+import copy
+import json
 import os
-from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 import traceback
+
+import yaml
+
+from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 
 # Default values for project settings
 DEFAULT_DELETION_POLICY = 'confirm'
@@ -405,7 +409,6 @@ class ProjectLoader:
 
     def _apply_legend_defaults(self, legends_data):
         """Apply legendDefaults to each legend config. Each legend can override."""
-        import copy
         legends_list = legends_data.get('legends', [])
         defaults = legends_data.get('legendDefaults', {})
         if not defaults:
@@ -441,7 +444,6 @@ class ProjectLoader:
 
     def _expand_templates(self, geom_layers):
         """Expand template applications into concrete layers."""
-        import copy
 
         # Collect templates from all loaded YAML data
         templates = {}
@@ -509,8 +511,6 @@ class ProjectLoader:
 
     def _substitute_template(self, template, params):
         """Deep-substitute ${param} placeholders in a template's layers."""
-        import copy
-        import json
 
         layers = template.get('layers', [])
         # Serialize to JSON, substitute, deserialize
