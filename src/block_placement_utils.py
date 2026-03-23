@@ -584,242 +584,53 @@ class BlockPlacementUtils:
 
     @staticmethod
     def place_blocks_bulk(space, config, all_layers, script_identifier):
-        """
-        Place multiple blocks from a config without sync tracking.
-        For use by generated block placement system.
-
-        Args:
-            space: DXF space (modelspace or paperspace)
-            config: Block placement configuration
-            all_layers: Dictionary of all processed layers
-            script_identifier: Script identifier for metadata
-
-        Returns:
-            List of created block references
-        """
+        """Place multiple blocks from a config without sync tracking."""
         name = config.get('name')
         position_config = config.get('position', {})
-        
-        # Handle external_dxf with optional sourceBlockName filtering
+
+        # Get insertion points (from external DXF or standard positioning)
         if position_config.get('type') == 'external_dxf':
-            source_block_name = config.get('sourceBlockName')
-            block_name = config.get('blockName')
-            
-            # Get insertion points with optional block name filter
-            offset_x = position_config.get('offset', {}).get('x', 0)
-            offset_y = position_config.get('offset', {}).get('y', 0)
-            points_and_rotations = BlockPlacementUtils._get_insertion_points_from_external_dxf(
-                position_config, offset_x, offset_y, source_block_name
+            points_and_rotations = BlockPlacementUtils._handle_external_dxf_source(
+                space, config, position_config
             )
-            
-            # Only copy block definition if sourceBlockName is not specified OR equals blockName
-            # This allows placing a different block at the source block's positions
-            should_copy_block = not source_block_name or source_block_name == block_name
-            
-            if should_copy_block:
-                from src.dxf_utils import copy_block_definition_from_dxf
-                from src.utils import resolve_path
-                
-                source_file = position_config.get('sourceFile')
-                if source_file:
-                    full_path = resolve_path(source_file)
-                    
-                    if full_path in BlockPlacementUtils._external_dxf_cache:
-                        source_doc = BlockPlacementUtils._external_dxf_cache[full_path]
-                        
-                        if block_name:
-                            # Ensure layer exists for normalization
-                            layer_name = config.get('layer', name)
-                            if layer_name not in space.doc.layers:
-                                space.doc.layers.new(layer_name)
-                            
-                            # Check if normalization is requested
-                            normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
-                            
-                            # Check if force reimport is requested
-                            force_reimport = config.get('forceReimport', False)
-                            
-                            # Copy block definition (with optional layer normalization and force reimport)
-                            success = copy_block_definition_from_dxf(
-                                source_doc, 
-                                space.doc, 
-                                block_name,
-                                normalize_layers_to=normalize_to,
-                                force_reimport=force_reimport
-                            )
-                            
-                            if not success:
-                                log_warning(f"Failed to copy block definition '{block_name}' from external DXF")
-                                return []
-                            
-                            if source_block_name:
-                                log_info(f"Copied block '{block_name}' from external DXF (same as sourceBlockName)")
-                            else:
-                                log_info(f"Copied block '{block_name}' from external DXF")
-            else:
-                # Using a different block - verify it exists in target document
-                if block_name not in space.doc.blocks:
-                    log_warning(f"Block '{block_name}' not found in document (sourceBlockName='{source_block_name}' specifies different block)")
-                    log_warning(f"Available blocks: {[b.name for b in space.doc.blocks if not b.name.startswith('*')][:10]}")
-                    return []
-                log_info(f"Using existing block '{block_name}' at positions from '{source_block_name}' in external DXF")
+            if points_and_rotations is None:
+                return []
         else:
-            # Standard positioning (not external_dxf)
             points_and_rotations = BlockPlacementUtils.get_insertion_points(position_config, all_layers)
 
         if not points_and_rotations:
             log_warning(f"No insertion points found for block placement '{name}'")
             return []
 
-        # Calculate center alignment offset for external_dxf placements
-        center_offset_x = 0
-        center_offset_y = 0
-        
-        if position_config.get('type') == 'external_dxf':
-            source_block_name = config.get('sourceBlockName')
-            block_name = config.get('blockName')
-            
-            # Only calculate offset if source and target blocks are different
-            # (or if sourceBlockName is not specified, implying same block)
-            if source_block_name and block_name:
-                # Check if alignment is requested (default to center alignment)
-                align_centers = config.get('alignCenters', True)
-                
-                if align_centers:
-                    log_debug(f"Calculating center alignment offset for '{name}'")
-                    
-                    # Get source block center
-                    source_center = BlockPlacementUtils._get_block_center_from_external_dxf(
-                        position_config, source_block_name
-                    )
-                    
-                    if source_center:
-                        # Get target block center
-                        target_center = BlockPlacementUtils._get_block_bbox_center(space.doc, block_name)
-                        
-                        if target_center:
-                            # Calculate offset: move from source insertion point to its center,
-                            # then back from target center to target insertion point
-                            center_offset_x = source_center[0] - target_center[0]
-                            center_offset_y = source_center[1] - target_center[1]
-                            
-                            log_info(f"Center alignment for '{name}': offset ({center_offset_x:.2f}, {center_offset_y:.2f})")
-                            log_debug(f"  Source '{source_block_name}' center: {source_center}")
-                            log_debug(f"  Target '{block_name}' center: {target_center}")
-                        else:
-                            log_warning(f"Could not measure target block '{block_name}' center - blocks may be misaligned")
-                    else:
-                        log_warning(f"Could not measure source block '{source_block_name}' center - blocks may be misaligned")
+        # Calculate center alignment offset
+        center_offset = BlockPlacementUtils._calculate_center_alignment(space, config, position_config)
 
         # Calculate final scale
-        scale_value = config.get('scale', 1.0)
-        
-        if scale_value == 'auto':
-            # Auto-scale requires sourceBlockName
-            source_block_name = config.get('sourceBlockName')
-            block_name = config.get('blockName')
-            
-            if not source_block_name:
-                log_error(f"Block placement '{name}': scale='auto' requires 'sourceBlockName'")
-                return []
-            
-            if not block_name:
-                log_error(f"Block placement '{name}': scale='auto' requires 'blockName'")
-                return []
-            
-            # Get reference width - either from config or measure target block
-            reference_width = config.get('blockReferenceWidth')
-            
-            if reference_width:
-                log_debug(f"Using explicit blockReferenceWidth: {reference_width}")
-            else:
-                # Measure the target block in output document
-                reference_width = BlockPlacementUtils._measure_block_width(space.doc, block_name)
-                
-                if reference_width is None:
-                    log_error(f"Block placement '{name}': Failed to measure target block '{block_name}' for reference width. " +
-                             f"Block must exist in document before auto-scaling, or specify 'blockReferenceWidth' explicitly.")
-                    return []
-                
-                log_info(f"Auto-inferred reference width from block '{block_name}': {reference_width:.2f}")
-            
-            # Measure source block width
-            measured_width = BlockPlacementUtils._get_block_width_from_external_dxf(
-                position_config, source_block_name
-            )
-            
-            if measured_width is None:
-                log_error(f"Block placement '{name}': Failed to measure source block '{source_block_name}'")
-                return []
-            
-            # Calculate scale
-            final_scale = measured_width / reference_width
-            log_info(f"Auto-scale for '{name}': measured {measured_width:.2f} / reference {reference_width:.2f} = scale {final_scale:.3f}")
-        else:
-            # Use numeric scale value
-            try:
-                final_scale = float(scale_value)
-            except (TypeError, ValueError):
-                log_warning(f"Invalid scale value '{scale_value}' for '{name}', using 1.0")
-                final_scale = 1.0
-        
-        # Apply optional scale multiplier
-        if 'scaleMultiplier' in config:
-            multiplier = config.get('scaleMultiplier', 1.0)
-            final_scale *= multiplier
-            log_debug(f"Applied scale multiplier {multiplier} for '{name}', final scale: {final_scale:.3f}")
+        final_scale = BlockPlacementUtils._calculate_final_scale(space, config, position_config)
+        if final_scale is None:
+            return []
 
-        # Ensure layer exists
+        # Place blocks
         layer_name = config.get('layer', name)
         if layer_name not in space.doc.layers:
             space.doc.layers.new(layer_name)
 
         created_blocks = []
-
         for point_data in points_and_rotations:
-            # Handle both 2-tuple (point, rotation) and 3-tuple (x, y, rotation) formats
             if len(point_data) == 3:
                 x, y, rotation = point_data
                 point = (x, y)
             else:
                 point, rotation = point_data
-                if not isinstance(point, tuple):  # Ensure point is always a tuple
+                if not isinstance(point, tuple):
                     point = (point[0], point[1]) if hasattr(point, '__getitem__') else (0, 0)
 
-            # Apply center alignment offset
-            # If the source INSERT has rotation, we need to rotate the offset vector too
-            if center_offset_x != 0 or center_offset_y != 0:
-                if rotation is not None and rotation != 0:
-                    # Rotate the offset vector by the INSERT rotation angle
-                    import math
-                    rotation_rad = math.radians(rotation)
-                    cos_r = math.cos(rotation_rad)
-                    sin_r = math.sin(rotation_rad)
-                    
-                    # Rotate offset vector
-                    rotated_offset_x = center_offset_x * cos_r - center_offset_y * sin_r
-                    rotated_offset_y = center_offset_x * sin_r + center_offset_y * cos_r
-                    
-                    adjusted_point = (point[0] + rotated_offset_x, point[1] + rotated_offset_y)
-                    
-                    log_debug(f"Rotated offset by {rotation}°: ({center_offset_x:.3f}, {center_offset_y:.3f}) -> ({rotated_offset_x:.3f}, {rotated_offset_y:.3f})")
-                else:
-                    # No rotation, use offset as-is
-                    adjusted_point = (point[0] + center_offset_x, point[1] + center_offset_y)
-            else:
-                # No offset
-                adjusted_point = point
-
-            # Use the calculated rotation if available, otherwise use config rotation
+            adjusted_point = BlockPlacementUtils._apply_center_offset(point, center_offset, rotation)
             final_rotation = rotation if rotation is not None else config.get('rotation', 0)
 
             block_ref = add_block_reference(
-                space,
-                config['blockName'],
-                adjusted_point,
-                layer_name,
-                scale=final_scale,
-                rotation=final_rotation
+                space, config['blockName'], adjusted_point, layer_name,
+                scale=final_scale, rotation=final_rotation
             )
             if block_ref:
                 attach_custom_data(block_ref, script_identifier)
@@ -827,6 +638,136 @@ class BlockPlacementUtils:
 
         log_debug(f"Placed {len(created_blocks)} blocks for '{name}'")
         return created_blocks
+
+    @staticmethod
+    def _handle_external_dxf_source(space, config, position_config):
+        """Handle block placement from external DXF source. Returns points or None on failure."""
+        source_block_name = config.get('sourceBlockName')
+        block_name = config.get('blockName')
+        name = config.get('name')
+
+        offset_x = position_config.get('offset', {}).get('x', 0)
+        offset_y = position_config.get('offset', {}).get('y', 0)
+        points_and_rotations = BlockPlacementUtils._get_insertion_points_from_external_dxf(
+            position_config, offset_x, offset_y, source_block_name
+        )
+
+        should_copy_block = not source_block_name or source_block_name == block_name
+
+        if should_copy_block:
+            from src.dxf_utils import copy_block_definition_from_dxf
+            from src.utils import resolve_path
+
+            source_file = position_config.get('sourceFile')
+            if source_file:
+                full_path = resolve_path(source_file)
+                if full_path in BlockPlacementUtils._external_dxf_cache:
+                    source_doc = BlockPlacementUtils._external_dxf_cache[full_path]
+                    if block_name:
+                        layer_name = config.get('layer', name)
+                        if layer_name not in space.doc.layers:
+                            space.doc.layers.new(layer_name)
+                        normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
+                        force_reimport = config.get('forceReimport', False)
+                        success = copy_block_definition_from_dxf(
+                            source_doc, space.doc, block_name,
+                            normalize_layers_to=normalize_to, force_reimport=force_reimport
+                        )
+                        if not success:
+                            log_warning(f"Failed to copy block definition '{block_name}' from external DXF")
+                            return None
+                        log_info(f"Copied block '{block_name}' from external DXF")
+        else:
+            if block_name not in space.doc.blocks:
+                log_warning(f"Block '{block_name}' not found in document")
+                return None
+            log_info(f"Using existing block '{block_name}' at positions from '{source_block_name}'")
+
+        return points_and_rotations
+
+    @staticmethod
+    def _calculate_center_alignment(space, config, position_config):
+        """Calculate center alignment offset for external DXF placements. Returns (offset_x, offset_y)."""
+        if position_config.get('type') != 'external_dxf':
+            return (0, 0)
+
+        source_block_name = config.get('sourceBlockName')
+        block_name = config.get('blockName')
+
+        if not (source_block_name and block_name and config.get('alignCenters', True)):
+            return (0, 0)
+
+        source_center = BlockPlacementUtils._get_block_center_from_external_dxf(
+            position_config, source_block_name
+        )
+        if not source_center:
+            return (0, 0)
+
+        target_center = BlockPlacementUtils._get_block_bbox_center(space.doc, block_name)
+        if not target_center:
+            return (0, 0)
+
+        offset = (source_center[0] - target_center[0], source_center[1] - target_center[1])
+        log_info(f"Center alignment for '{config.get('name')}': offset ({offset[0]:.2f}, {offset[1]:.2f})")
+        return offset
+
+    @staticmethod
+    def _calculate_final_scale(space, config, position_config):
+        """Calculate final scale value. Returns float or None on failure."""
+        name = config.get('name')
+        scale_value = config.get('scale', 1.0)
+
+        if scale_value == 'auto':
+            source_block_name = config.get('sourceBlockName')
+            block_name = config.get('blockName')
+            if not source_block_name or not block_name:
+                log_error(f"Block placement '{name}': scale='auto' requires sourceBlockName and blockName")
+                return None
+
+            reference_width = config.get('blockReferenceWidth')
+            if not reference_width:
+                reference_width = BlockPlacementUtils._measure_block_width(space.doc, block_name)
+                if reference_width is None:
+                    log_error(f"Block placement '{name}': Failed to measure target block '{block_name}'")
+                    return None
+
+            measured_width = BlockPlacementUtils._get_block_width_from_external_dxf(
+                position_config, source_block_name
+            )
+            if measured_width is None:
+                log_error(f"Block placement '{name}': Failed to measure source block '{source_block_name}'")
+                return None
+
+            final_scale = measured_width / reference_width
+            log_info(f"Auto-scale for '{name}': {measured_width:.2f} / {reference_width:.2f} = {final_scale:.3f}")
+        else:
+            try:
+                final_scale = float(scale_value)
+            except (TypeError, ValueError):
+                log_warning(f"Invalid scale value '{scale_value}' for '{name}', using 1.0")
+                final_scale = 1.0
+
+        if 'scaleMultiplier' in config:
+            final_scale *= config.get('scaleMultiplier', 1.0)
+
+        return final_scale
+
+    @staticmethod
+    def _apply_center_offset(point, center_offset, rotation):
+        """Apply center alignment offset to a point, rotating offset if entity is rotated."""
+        offset_x, offset_y = center_offset
+        if offset_x == 0 and offset_y == 0:
+            return point
+
+        if rotation is not None and rotation != 0:
+            import math
+            rad = math.radians(rotation)
+            cos_r, sin_r = math.cos(rad), math.sin(rad)
+            rx = offset_x * cos_r - offset_y * sin_r
+            ry = offset_x * sin_r + offset_y * cos_r
+            return (point[0] + rx, point[1] + ry)
+
+        return (point[0] + offset_x, point[1] + offset_y)
 
     @staticmethod
     def place_block_single(space, config, all_layers, script_identifier):
