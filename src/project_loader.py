@@ -121,8 +121,7 @@ class ProjectLoader:
         block_default_layer = block_inserts.get('default_layer', DEFAULT_BLOCK_LAYER) if block_inserts else DEFAULT_BLOCK_LAYER
 
         # Extract global auto sync conflict resolution setting
-        auto_conflict_resolution = main_settings.get('autoConflictResolution',
-                                    main_settings.get('auto_conflict_resolution', DEFAULT_CONFLICT_RESOLUTION))
+        auto_conflict_resolution = main_settings.get('autoConflictResolution', DEFAULT_CONFLICT_RESOLUTION)
 
         # Validate deletion policies for both entity types
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}

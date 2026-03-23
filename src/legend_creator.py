@@ -80,7 +80,7 @@ class LegendCreator:
     def create_single_legend(self, legend_config):
         # Check if legend is enabled (default to True if not specified)
         if not legend_config.get('enabled', True):
-            log_debug(f"Skipping disabled legend: {legend_config.get('id', 'unnamed')}")
+            log_debug(f"Skipping disabled legend: {legend_config.get('name', legend_config.get('id', 'unnamed'))}")
             return
 
         legend_id = legend_config.get('name', legend_config.get('id', 'default'))
