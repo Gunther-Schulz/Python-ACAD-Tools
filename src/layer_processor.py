@@ -1,4 +1,3 @@
-import math
 import os
 import shutil
 import traceback
@@ -7,7 +6,7 @@ import ezdxf
 import fiona
 import geopandas as gpd
 from geopandas import GeoSeries
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 
 from src.dxf_utils import read_cad_layer_to_geodataframe
 from src.operations.registry import get_operation
@@ -382,23 +381,12 @@ class LayerProcessor:
 
         if 'bluntAngles' in layer_obj:
             blunt_config = layer_obj['bluntAngles']
-            angle_threshold = blunt_config.get('angleThreshold', 45)
-            blunt_distance = blunt_config.get('distance', 0.5)
-
-            log_debug(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
-
-            if layer_name in self.all_layers:
-                original_geom = self.all_layers[layer_name]
-                blunted_geom = original_geom.geometry.apply(
-                    lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
-                )
-                self.all_layers[layer_name].geometry = blunted_geom
-
-                log_debug(f"Blunting complete for layer '{layer_name}'")
-                log_debug(f"Original geometry count: {len(original_geom)}")
-                log_debug(f"Blunted geometry count: {len(blunted_geom)}")
-            else:
-                log_warning(f"Layer '{layer_name}' not found for blunting angles")
+            blunt_op = {'type': 'bluntAngles', 'layers': [layer_name], **blunt_config}
+            op_info = get_operation('bluntAngles')
+            if op_info:
+                r = op_info.handler(self.all_layers, self.project_settings, self.crs, layer_name, blunt_op)
+                if r is not None:
+                    self.all_layers[layer_name] = r
 
         if 'filterGeometry' in layer_obj:
             filter_config = layer_obj['filterGeometry']
@@ -719,146 +707,6 @@ class LayerProcessor:
 
         log_debug(f"Stored hatch configuration for layer: {layer_name}")
 
-
-    def levenshtein_distance(self, s1, s2):
-            if len(s1) < len(s2):
-                return self.levenshtein_distance(s2, s1)
-
-            if len(s2) == 0:
-                return len(s1)
-
-            previous_row = range(len(s2) + 1)
-            for i, c1 in enumerate(s1):
-                current_row = [i + 1]
-                for j, c2 in enumerate(s2):
-                    insertions = previous_row[j + 1] + 1
-                    deletions = current_row[j] + 1
-                    substitutions = previous_row[j] + (c1 != c2)
-                    current_row.append(min(insertions, deletions, substitutions))
-                previous_row = current_row
-
-            return previous_row[-1]
-
-    def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
-        if isinstance(geometry, GeoSeries):
-            return geometry.apply(lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance))
-
-        log_debug(f"Blunting angles for geometry: {geometry.wkt[:100]}...")
-        if isinstance(geometry, Polygon):
-            return self._blunt_polygon_angles(geometry, angle_threshold, blunt_distance)
-        elif isinstance(geometry, MultiPolygon):
-            return MultiPolygon([self._blunt_polygon_angles(poly, angle_threshold, blunt_distance) for poly in geometry.geoms])
-        elif isinstance(geometry, (LineString, MultiLineString)):
-            return self._blunt_linestring_angles(geometry, angle_threshold, blunt_distance)
-        elif isinstance(geometry, GeometryCollection):
-            new_geoms = [self.blunt_sharp_angles(geom, angle_threshold, blunt_distance) for geom in geometry.geoms]
-            return GeometryCollection(new_geoms)
-        else:
-            log_warning(f"Unsupported geometry type for blunting: {type(geometry)}")
-            return geometry
-
-    def _blunt_polygon_angles(self, polygon, angle_threshold, blunt_distance):
-        log_debug(f"Blunting polygon angles: {polygon.wkt[:100]}...")
-
-        exterior_blunted = self._blunt_ring(LinearRing(polygon.exterior.coords), angle_threshold, blunt_distance)
-        interiors_blunted = [self._blunt_ring(LinearRing(interior.coords), angle_threshold, blunt_distance) for interior in polygon.interiors]
-
-        return Polygon(exterior_blunted, interiors_blunted)
-
-    def _blunt_ring(self, ring, angle_threshold, blunt_distance):
-        coords = list(ring.coords)
-        new_coords = []
-
-        for i in range(len(coords) - 1):  # -1 because the last point is the same as the first for rings
-            prev_point = Point(coords[i-1])
-            current_point = Point(coords[i])
-            next_point = Point(coords[(i+1) % (len(coords)-1)])  # Wrap around for the last point
-
-            # Skip processing if current point is identical to previous or next point
-            if current_point.equals(prev_point) or current_point.equals(next_point):
-                new_coords.append(coords[i])
-                continue
-
-            angle = self._calculate_angle(prev_point, current_point, next_point)
-
-            if angle is not None and angle < angle_threshold:
-                log_debug(f"Blunting angle at point {i}")
-                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
-                new_coords.extend(blunted_points)
-            else:
-                new_coords.append(coords[i])
-
-        new_coords.append(new_coords[0])  # Close the ring
-        return LinearRing(new_coords)
-
-    def _blunt_linestring_angles(self, linestring, angle_threshold, blunt_distance):
-        log_debug(f"Blunting linestring angles: {linestring.wkt[:100]}...")
-        if isinstance(linestring, MultiLineString):
-            new_linestrings = [self._blunt_linestring_angles(ls, angle_threshold, blunt_distance) for ls in linestring.geoms]
-            return MultiLineString(new_linestrings)
-
-        coords = list(linestring.coords)
-        new_coords = [coords[0]]
-
-        for i in range(1, len(coords) - 1):
-            prev_point = Point(coords[i-1])
-            current_point = Point(coords[i])
-            next_point = Point(coords[i+1])
-
-            angle = self._calculate_angle(prev_point, current_point, next_point)
-
-            if angle is not None and angle < angle_threshold:
-                log_debug(f"Blunting angle at point {i}")
-                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
-                new_coords.extend(blunted_points)
-            else:
-                new_coords.append(coords[i])
-
-        new_coords.append(coords[-1])
-        return LineString(new_coords)
-
-    def _calculate_angle(self, p1, p2, p3):
-        v1 = [p1.x - p2.x, p1.y - p2.y]
-        v2 = [p3.x - p2.x, p3.y - p2.y]
-
-        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
-        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
-
-        # Check if either vector has zero magnitude
-        if v1_mag == 0 or v2_mag == 0:
-            log_warning(f"Zero magnitude vector encountered: v1_mag={v1_mag}, v2_mag={v2_mag}")
-            return None
-
-        dot_product = v1[0] * v2[0] + v1[1] * v2[1]
-
-        cos_angle = dot_product / (v1_mag * v2_mag)
-        cos_angle = max(-1, min(1, cos_angle))  # Ensure the value is between -1 and 1
-        angle_rad = math.acos(cos_angle)
-        return math.degrees(angle_rad)
-
-    def _create_radical_blunt_segment(self, p1, p2, p3, blunt_distance):
-        log_debug(f"Creating radical blunt segment for points: {p1}, {p2}, {p3}")
-        v1 = [(p1.x - p2.x), (p1.y - p2.y)]
-        v2 = [(p3.x - p2.x), (p3.y - p2.y)]
-
-        # Normalize vectors
-        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
-        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
-
-        # Check if either vector has zero magnitude
-        if v1_mag == 0 or v2_mag == 0:
-            log_warning(f"Zero magnitude vector encountered in blunt segment: v1_mag={v1_mag}, v2_mag={v2_mag}")
-            return [p2.coords[0]]  # Return the original point if we can't create a blunt segment
-
-        v1_norm = [v1[0] / v1_mag, v1[1] / v1_mag]
-        v2_norm = [v2[0] / v2_mag, v2[1] / v2_mag]
-
-        # Calculate points for the new segment
-        point1 = (p2.x + v1_norm[0] * blunt_distance, p2.y + v1_norm[1] * blunt_distance)
-        point2 = (p2.x + v2_norm[0] * blunt_distance, p2.y + v2_norm[1] * blunt_distance)
-
-        log_debug(f"Radical blunt segment created: {point1}, {point2}")
-        return [point1, point2]
 
     def standardize_layer_crs(self, layer_name, geometry_or_gdf):
         target_crs = self.crs
