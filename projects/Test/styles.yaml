@@ -1,0 +1,11 @@
+styles:
+  # Override global wald style with different scale
+  wald:
+    hatch:
+      scale: 8.0
+
+  # New project-specific style using extends
+  testZone:
+    extends: baugrenze
+    layer:
+      color: "green"

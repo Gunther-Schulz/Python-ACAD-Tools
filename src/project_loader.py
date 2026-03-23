@@ -307,14 +307,76 @@ class ProjectLoader:
             self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
 
     def load_styles(self):
-        """Load styles from root styles.yaml"""
+        """Load styles from global styles.yaml, with per-project overrides and inheritance."""
+        # 1. Load global styles
+        self.styles = {}
         try:
             with open('styles.yaml', 'r') as file:
                 style_data = yaml.safe_load(file)
                 self.styles = style_data.get('styles', {})
         except FileNotFoundError:
-            log_warning("styles.yaml not found. Using project-specific styles.")
-            self.styles = self.project_settings.get('styles', {})
+            log_warning("styles.yaml not found.")
+
+        # 2. Load project-level styles and merge (project overrides global per-style)
+        project_styles_path = os.path.join(self.project_dir, 'styles.yaml')
+        if os.path.exists(project_styles_path):
+            with open(project_styles_path, 'r') as file:
+                project_style_data = yaml.safe_load(file)
+                if project_style_data and 'styles' in project_style_data:
+                    for name, style in project_style_data['styles'].items():
+                        if name in self.styles and isinstance(self.styles[name], dict) and isinstance(style, dict):
+                            self.styles[name] = self._deep_merge(self.styles[name], style)
+                        else:
+                            self.styles[name] = style
+                    log_debug(f"Loaded {len(project_style_data['styles'])} project-level style overrides")
+
+        # 3. Resolve 'extends' inheritance
+        self._resolve_style_extends()
+
+    def _deep_merge(self, base, override):
+        """Deep merge two dicts. Override values take precedence."""
+        result = base.copy()
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    def _resolve_style_extends(self):
+        """Resolve 'extends' references in styles via deep merge."""
+        resolved = set()
+        resolving = set()
+
+        def resolve(name):
+            if name in resolved:
+                return self.styles.get(name, {})
+            if name in resolving:
+                log_warning(f"Circular style extends detected: {name}")
+                return self.styles.get(name, {})
+            if name not in self.styles:
+                return {}
+
+            style = self.styles[name]
+            if not isinstance(style, dict) or 'extends' not in style:
+                resolved.add(name)
+                return style
+
+            resolving.add(name)
+            parent_name = style['extends']
+            parent = resolve(parent_name)
+
+            # Deep merge: parent is base, current style overrides
+            child = {k: v for k, v in style.items() if k != 'extends'}
+            merged = self._deep_merge(parent, child)
+            self.styles[name] = merged
+            resolving.discard(name)
+            resolved.add(name)
+            log_debug(f"Style '{name}' extends '{parent_name}'")
+            return merged
+
+        for name in list(self.styles.keys()):
+            resolve(name)
 
     def get_style(self, style_name):
         """Get a style by name from the loaded styles"""
