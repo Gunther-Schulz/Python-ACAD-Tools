@@ -66,6 +66,16 @@ class ProjectLoader:
                         geom_layers['geomLayers'] = []
                     geom_layers['geomLayers'].extend(extra_list)
                     log_debug(f"Loaded {len(extra_list)} layers from {filename}")
+                # Also collect templates and apply entries from layer files
+                for key in ('templates', 'apply'):
+                    extra_items = extra_layers.get(key, [])
+                    if extra_items:
+                        if key not in geom_layers:
+                            geom_layers[key] = []
+                        geom_layers[key].extend(extra_items)
+
+        # Expand templates
+        geom_layers['geomLayers'] = self._expand_templates(geom_layers)
 
         # Load generated/ folder configurations (traditional push/skip only)
         legends = self.load_yaml_file('generated/legends.yaml', required=False) or {}
@@ -350,6 +360,112 @@ class ProjectLoader:
                     log_error(error_message)
                     raise ValueError(error_message)
             layer['operations'] = new_operations
+
+    def _expand_templates(self, geom_layers):
+        """Expand template applications into concrete layers."""
+        import copy
+
+        # Collect templates from all loaded YAML data
+        templates = {}
+
+        # 1. Load tool-level templates from templates/ directory next to src/
+        tool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        tool_templates_dir = os.path.join(tool_dir, 'templates')
+        if os.path.isdir(tool_templates_dir):
+            import glob as glob_mod
+            for tpl_file in sorted(glob_mod.glob(os.path.join(tool_templates_dir, '*.yaml'))):
+                tpl_data = None
+                with open(tpl_file, 'r') as f:
+                    tpl_data = yaml.safe_load(f)
+                if tpl_data and 'templates' in tpl_data:
+                    for tpl in tpl_data['templates']:
+                        templates[tpl['name']] = tpl
+                        log_debug(f"Loaded tool template '{tpl['name']}' from {tpl_file}")
+
+        # 2. Load project-level templates from templates.yaml
+        project_templates = self.load_yaml_file('templates.yaml', required=False) or {}
+        for tpl in project_templates.get('templates', []):
+            templates[tpl['name']] = tpl
+            log_debug(f"Loaded project template '{tpl['name']}'")
+
+        # 3. Collect inline templates from geomLayers data
+        for tpl in geom_layers.get('templates', []):
+            templates[tpl['name']] = tpl
+            log_debug(f"Loaded inline template '{tpl['name']}'")
+
+        if not templates:
+            return geom_layers.get('geomLayers', [])
+
+        # Process apply blocks
+        all_layers = []
+        for item in geom_layers.get('geomLayers', []):
+            all_layers.append(item)
+
+        # Process apply entries
+        for apply_entry in geom_layers.get('apply', []):
+            template_name = apply_entry.get('template')
+            if template_name not in templates:
+                log_warning(f"Template '{template_name}' not found, skipping")
+                continue
+
+            template = templates[template_name]
+            params = apply_entry.get('params', {})
+
+            # Handle 'each' for looping over a list
+            each_values = apply_entry.get('each')
+            if each_values:
+                # 'each' provides a list of values for the first param
+                each_param = template.get('params', [None])[0] if template.get('params') else None
+                if each_param:
+                    for val in each_values:
+                        loop_params = {**params, each_param: val}
+                        expanded = self._substitute_template(template, loop_params)
+                        all_layers.extend(expanded)
+                        log_debug(f"Expanded template '{template_name}' with {each_param}={val}: {len(expanded)} layers")
+            else:
+                expanded = self._substitute_template(template, params)
+                all_layers.extend(expanded)
+                log_debug(f"Expanded template '{template_name}': {len(expanded)} layers")
+
+        return all_layers
+
+    def _substitute_template(self, template, params):
+        """Deep-substitute ${param} placeholders in a template's layers."""
+        import copy
+        import json
+
+        layers = template.get('layers', [])
+        # Serialize to JSON, substitute, deserialize
+        layers_json = json.dumps(layers)
+
+        for key, value in params.items():
+            placeholder = '${' + key + '}'
+            if isinstance(value, str):
+                layers_json = layers_json.replace(placeholder, value)
+            elif isinstance(value, list):
+                json_list = json.dumps(value)
+                # Replace standalone value: "${parcels}" -> ["1","2"]
+                layers_json = layers_json.replace(f'"{placeholder}"', json_list)
+                # Also replace within strings (e.g., in names)
+                layers_json = layers_json.replace(placeholder, str(value))
+            elif isinstance(value, (int, float, bool)):
+                # For numeric/bool values, replace standalone string with raw value
+                # e.g., "distance": "${inset_distance}" -> "distance": -5
+                json_value = json.dumps(value)
+                layers_json = layers_json.replace(f'"{placeholder}"', json_value)
+                # Also replace within strings (e.g., in names)
+                layers_json = layers_json.replace(placeholder, str(value))
+            else:
+                layers_json = layers_json.replace(placeholder, str(value))
+
+        try:
+            result = json.loads(layers_json)
+        except json.JSONDecodeError as e:
+            log_error(f"Template substitution produced invalid JSON: {e}")
+            log_error(f"Result was: {layers_json[:500]}")
+            return []
+
+        return result
 
     def load_dxf_operations(self):
         """Initialize DXFProcessor with loaded operations"""

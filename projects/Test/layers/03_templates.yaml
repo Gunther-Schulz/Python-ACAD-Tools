@@ -1,0 +1,39 @@
+templates:
+  - name: buffer_zone
+    params:
+      - zone_name
+      - source_layer
+      - inset_distance
+    layers:
+      - name: "${zone_name}"
+        operations:
+          - type: buffer
+            layers:
+              - "${source_layer}"
+            distance: ${inset_distance}
+            joinStyle: mitre
+
+      - name: "${zone_name} Report"
+        operations:
+          - type: copy
+            layers:
+              - "${zone_name}"
+          - type: report
+            outputFile: "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/projects/Test/generated/${zone_name}_report.json"
+            calculate:
+              - area
+            decimalPlaces:
+              area: 0
+
+apply:
+  - template: buffer_zone
+    params:
+      zone_name: Inner Zone A
+      source_layer: Planning Zone
+      inset_distance: -5
+
+  - template: buffer_zone
+    params:
+      zone_name: Inner Zone B
+      source_layer: Planning Zone
+      inset_distance: -10
