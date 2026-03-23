@@ -178,146 +178,126 @@ class LayerProcessor:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def _load_dxf_source(self, layer_name, dxf_source_config):
-        """
-        Load geometry from an external DXF file.
-        
-        Args:
-            layer_name: Name of the layer to create
-            dxf_source_config: Dictionary with 'file', 'layer', and optional 'entityTypes', 'preprocessors'
-        """
-        from src.utils import resolve_path
-        from src.preprocessors.block_exploder import explode_blocks
-        from src.preprocessors.circle_extractor import extract_circle_centers
-        from src.preprocessors.basepoint_extractor import extract_entity_basepoints
-        
+        """Load geometry from an external DXF file."""
         try:
-            # Extract configuration
             dxf_file = dxf_source_config.get('file')
             source_layer = dxf_source_config.get('layer')
             entity_types = dxf_source_config.get('entityTypes', None)
             preprocessors = dxf_source_config.get('preprocessors', [])
-            
+
             if not dxf_file or not source_layer:
                 log_error(f"dxfSource for layer '{layer_name}' requires 'file' and 'layer' keys")
                 self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
                 return
-            
-            # Resolve path
-            full_path = resolve_path(dxf_file, self.project_loader.folder_prefix)
-            
-            # Check if file exists
-            if not os.path.exists(full_path):
-                log_error(f"DXF file not found for layer '{layer_name}': {full_path}")
-                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+
+            # Load and cache the DXF document
+            doc = self._get_external_dxf(dxf_file, layer_name)
+            if doc is None:
                 return
-            
-            log_debug(f"Loading layer '{source_layer}' from external DXF: {full_path}")
-            
-            # Check cache first
-            if full_path not in self._external_dxf_cache:
-                log_debug(f"Opening external DXF file: {full_path}")
-                doc = ezdxf.readfile(full_path)
-                self._external_dxf_cache[full_path] = doc
-            else:
-                log_debug(f"Using cached DXF document: {full_path}")
-                doc = self._external_dxf_cache[full_path]
-            
-            # Check if source layer exists in the DXF
+
             if source_layer not in doc.layers:
-                log_warning(f"Layer '{source_layer}' not found in DXF file: {full_path}")
-                log_debug(f"Available layers: {[layer.dxf.name for layer in doc.layers]}")
+                log_warning(f"Layer '{source_layer}' not found in DXF file: {dxf_file}")
                 self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
                 return
-            
-            # Get entities from the layer
-            msp = doc.modelspace()
-            
-            # Build query for entity types
-            # If we have preprocessors (like block_exploder), query for all entities first
-            # Entity type filtering will happen after preprocessing
-            if preprocessors:
-                query = f'*[layer=="{source_layer}"]'
-            elif entity_types and len(entity_types) == 1:
-                query = f'{entity_types[0]}[layer=="{source_layer}"]'
-            else:
-                query = f'*[layer=="{source_layer}"]'
-            
-            entities = list(msp.query(query))
-            
-            # Apply entity type filter if specified and no preprocessors
-            # (preprocessors may change entity types, so filter after)
-            if entity_types and not preprocessors:
-                if len(entity_types) > 1:
-                    entities = [e for e in entities if e.dxftype() in entity_types]
-            
-            log_debug(f"Found {len(entities)} entities in layer '{source_layer}'")
-            
-            # Apply preprocessors if specified
-            preprocessor_map = {
-                'block_exploder': explode_blocks,
-                'circle_extractor': extract_circle_centers,
-                'basepoint_extractor': extract_entity_basepoints
-            }
-            
-            for preprocessor_config in preprocessors:
-                # Support both simple string format and dict format with options
-                if isinstance(preprocessor_config, str):
-                    preprocessor_name = preprocessor_config
-                    preprocessor_options = {}
-                elif isinstance(preprocessor_config, dict):
-                    preprocessor_name = preprocessor_config.get('name')
-                    preprocessor_options = {k: v for k, v in preprocessor_config.items() if k != 'name'}
-                else:
-                    log_warning(f"Invalid preprocessor configuration: {preprocessor_config}")
-                    continue
-                
-                preprocessor = preprocessor_map.get(preprocessor_name)
-                if preprocessor:
-                    log_debug(f"Applying preprocessor: {preprocessor_name} with options: {preprocessor_options}")
-                    entities = preprocessor(entities, source_layer, **preprocessor_options)
-                    log_debug(f"After {preprocessor_name}: {len(entities)} entities")
-                else:
-                    log_warning(f"Unknown preprocessor: {preprocessor_name}")
-            
-            # Apply entity type filter AFTER preprocessors (since they may change entity types)
-            if entity_types and preprocessors:
-                entities = [e for e in entities if e.dxftype() in entity_types]
-                log_debug(f"After entity type filter: {len(entities)} entities")
-            
-            # Convert entities to GeoDataFrame
-            from src.dump_to_shape import convert_entity_to_geometry
-            from shapely.geometry import Point
-            
-            geometries = []
-            for entity_data in entities:
-                # Handle preprocessed data (dict format from preprocessors)
-                if isinstance(entity_data, dict):
-                    if 'coords' in entity_data:
-                        # From circle_extractor or basepoint_extractor
-                        geom = Point(entity_data['coords'])
-                        if geom.is_valid and not geom.is_empty:
-                            geometries.append(geom)
-                else:
-                    # Regular entity - convert to geometry
-                    geom = convert_entity_to_geometry(entity_data)
-                    if geom is not None:
-                        geometries.append(geom)
-            
-            # Create GeoDataFrame
-            if geometries:
-                gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
-                log_info(f"Loaded {len(gdf)} geometries from external DXF layer '{source_layer}' into '{layer_name}'")
-            else:
-                log_warning(f"No geometry found in layer '{source_layer}' from {dxf_file}")
-                gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-            
+
+            # Query, preprocess, and filter entities
+            entities = self._query_dxf_entities(doc, source_layer, entity_types, preprocessors)
+
+            # Convert to GeoDataFrame
+            gdf = self._entities_to_geodataframe(entities, source_layer, dxf_file, layer_name)
             self.all_layers[layer_name] = gdf
-            
+
         except Exception as e:
             log_error(f"Error loading DXF source for layer '{layer_name}': {str(e)}")
             log_error(traceback.format_exc())
-            # Create empty GeoDataFrame as fallback
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+
+    def _get_external_dxf(self, dxf_file, layer_name):
+        """Load and cache an external DXF document."""
+        full_path = resolve_path(dxf_file, self.project_loader.folder_prefix)
+        if not os.path.exists(full_path):
+            log_error(f"DXF file not found for layer '{layer_name}': {full_path}")
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            return None
+
+        if full_path not in self._external_dxf_cache:
+            log_debug(f"Opening external DXF file: {full_path}")
+            self._external_dxf_cache[full_path] = ezdxf.readfile(full_path)
+        return self._external_dxf_cache[full_path]
+
+    def _query_dxf_entities(self, doc, source_layer, entity_types, preprocessors):
+        """Query entities from DXF, apply preprocessors and entity type filtering."""
+        from src.preprocessors.block_exploder import explode_blocks
+        from src.preprocessors.circle_extractor import extract_circle_centers
+        from src.preprocessors.basepoint_extractor import extract_entity_basepoints
+
+        msp = doc.modelspace()
+
+        # Query — use broad query if preprocessors will transform entities
+        if preprocessors or not entity_types or len(entity_types) != 1:
+            query = f'*[layer=="{source_layer}"]'
+        else:
+            query = f'{entity_types[0]}[layer=="{source_layer}"]'
+
+        entities = list(msp.query(query))
+
+        # Filter by type before preprocessing (only if no preprocessors)
+        if entity_types and not preprocessors and len(entity_types) > 1:
+            entities = [e for e in entities if e.dxftype() in entity_types]
+
+        log_debug(f"Found {len(entities)} entities in layer '{source_layer}'")
+
+        # Apply preprocessors
+        preprocessor_map = {
+            'block_exploder': explode_blocks,
+            'circle_extractor': extract_circle_centers,
+            'basepoint_extractor': extract_entity_basepoints,
+        }
+        for pp_config in preprocessors:
+            if isinstance(pp_config, str):
+                pp_name, pp_opts = pp_config, {}
+            elif isinstance(pp_config, dict):
+                pp_name = pp_config.get('name')
+                pp_opts = {k: v for k, v in pp_config.items() if k != 'name'}
+            else:
+                log_warning(f"Invalid preprocessor configuration: {pp_config}")
+                continue
+            pp_func = preprocessor_map.get(pp_name)
+            if pp_func:
+                entities = pp_func(entities, source_layer, **pp_opts)
+                log_debug(f"After {pp_name}: {len(entities)} entities")
+            else:
+                log_warning(f"Unknown preprocessor: {pp_name}")
+
+        # Filter by type after preprocessing
+        if entity_types and preprocessors:
+            entities = [e for e in entities if e.dxftype() in entity_types]
+
+        return entities
+
+    def _entities_to_geodataframe(self, entities, source_layer, dxf_file, layer_name):
+        """Convert DXF entities (or preprocessed dicts) to a GeoDataFrame."""
+        from src.dump_to_shape import convert_entity_to_geometry
+
+        geometries = []
+        for entity_data in entities:
+            if isinstance(entity_data, dict):
+                if 'coords' in entity_data:
+                    geom = Point(entity_data['coords'])
+                    if geom.is_valid and not geom.is_empty:
+                        geometries.append(geom)
+            else:
+                geom = convert_entity_to_geometry(entity_data)
+                if geom is not None:
+                    geometries.append(geom)
+
+        if geometries:
+            gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
+            log_info(f"Loaded {len(gdf)} geometries from external DXF layer '{source_layer}' into '{layer_name}'")
+        else:
+            log_warning(f"No geometry found in layer '{source_layer}' from {dxf_file}")
+            gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+        return gdf
 
     def _process_layer_operations(self, layer_obj, layer_name, processed_layers, processing_stack):
         """
@@ -531,54 +511,7 @@ class LayerProcessor:
                                 log_warning(f"Label column '{label_col}' specified in config not found in shapefile")
                                 log_debug(f"Available columns are: {list(gdf.columns)}")
 
-                    # Validate geometries
-                    invalid_geometries = []
-                    null_geometries = []
-                    for idx, geom in enumerate(gdf.geometry):
-                        if geom is None:
-                            null_geometries.append(idx)
-                            continue
-
-                        if not geom.is_valid:
-                            reason = self._get_geometry_error(geom)
-                            invalid_geometries.append((idx, reason))
-                        elif geom.is_empty:
-                            invalid_geometries.append((idx, "Empty geometry"))
-                        elif isinstance(geom, (Polygon, MultiPolygon)):
-                            # Check for self-intersection in polygons
-                            if isinstance(geom, Polygon):
-                                if not geom.exterior.is_simple:
-                                    invalid_geometries.append((idx, "Self-intersecting polygon"))
-                            else:  # MultiPolygon
-                                for poly in geom.geoms:
-                                    if not poly.exterior.is_simple:
-                                        invalid_geometries.append((idx, "Self-intersecting polygon in MultiPolygon"))
-                                        break
-
-                    if null_geometries:
-                        log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
-
-                    # Check if this layer has repair operations that might fix the invalid geometries
-                    has_repair_operations = any(
-                        op.get('type') == 'repair'
-                        for op in layer.get('operations', [])
-                    )
-
-                    # Allow loading with warnings if repair operations are present, otherwise fail
-                    if invalid_geometries:
-                        error_msg = f"Invalid geometries found in layer '{layer_name}':\n"
-                        for idx, reason in invalid_geometries:
-                            error_msg += f"  - Feature {idx}: {reason}\n"
-
-                        if has_repair_operations:
-                            log_warning("Found invalid geometries, but repair operations are configured:")
-                            log_warning(error_msg)
-                            log_info(f"Layer '{layer_name}' will be processed with repair operations to fix {len(invalid_geometries)} invalid geometries")
-                        else:
-                            log_error(error_msg)
-                            log_error(f"Consider adding a 'repair' operation to layer '{layer_name}' to fix these geometry issues")
-                            raise ValueError(error_msg)
-
+                    self._validate_loaded_geometries(gdf, layer_name, layer)
                     gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:
                         self.all_layers[layer_name] = gdf
@@ -775,6 +708,41 @@ class LayerProcessor:
                         log_debug(f"Deleted residual file: {filename}")
                     except Exception as e:
                         log_warning(f"Failed to delete residual file {file_path}. Reason: {e}")
+
+    def _validate_loaded_geometries(self, gdf, layer_name, layer_config):
+        """Validate geometries in a loaded GeoDataFrame, raise if invalid and no repair ops."""
+        invalid_geometries = []
+        null_geometries = []
+        for idx, geom in enumerate(gdf.geometry):
+            if geom is None:
+                null_geometries.append(idx)
+                continue
+            if not geom.is_valid:
+                invalid_geometries.append((idx, self._get_geometry_error(geom)))
+            elif geom.is_empty:
+                invalid_geometries.append((idx, "Empty geometry"))
+            elif isinstance(geom, (Polygon, MultiPolygon)):
+                polys = [geom] if isinstance(geom, Polygon) else geom.geoms
+                for poly in polys:
+                    if not poly.exterior.is_simple:
+                        invalid_geometries.append((idx, "Self-intersecting polygon"))
+                        break
+
+        if null_geometries:
+            log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
+
+        if invalid_geometries:
+            error_msg = f"Invalid geometries found in layer '{layer_name}':\n"
+            for idx, reason in invalid_geometries:
+                error_msg += f"  - Feature {idx}: {reason}\n"
+
+            has_repair = any(op.get('type') == 'repair' for op in layer_config.get('operations', []))
+            if has_repair:
+                log_warning(error_msg)
+                log_info(f"Layer '{layer_name}' will be processed with repair operations")
+            else:
+                log_error(error_msg)
+                raise ValueError(error_msg)
 
     def _get_geometry_error(self, geom):
         """Helper method to get detailed geometry validation error"""
