@@ -33,7 +33,6 @@ __all__ = [
     'process_wmts_or_wms_layer',
     'create_merged_layer',
     'create_smooth_layer',
-    'handle_contour_operation',
     '_create_generic_overlay_layer',
     '_handle_contour_operation',
     'create_dissolved_layer',

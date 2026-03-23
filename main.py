@@ -54,7 +54,7 @@ class ProjectProcessor:
             self.layer_processor.process_layers()
         else:
             # Load the document and process DXF operations early
-            doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+            doc = self.dxf_exporter._load_or_create_dxf()
             self.layer_processor.set_dxf_document(doc)
             self.layer_processor.process_layers()
             self.dxf_exporter.export_to_dxf()
@@ -77,13 +77,10 @@ class ProjectProcessor:
                 log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 
     def process(self):
-        # Load the document and process DXF operations early
-        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+        doc = self.dxf_exporter._load_or_create_dxf()
         self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
-
-        # Pass skip_dxf_processor=True to avoid second processing
-        self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
+        self.dxf_exporter.export_to_dxf()
 
         # Store and return the document reference
         self.doc = doc

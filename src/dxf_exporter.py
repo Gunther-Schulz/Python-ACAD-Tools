@@ -15,11 +15,11 @@ from PIL import Image
 from src.legend_creator import LegendCreator
 from src.dxf_utils import (
     get_color_code, attach_custom_data, is_created_by_script,
-    remove_entities_by_layer, ensure_layer_exists, add_text,
+    remove_entities_by_layer, ensure_layer_exists,
     update_layer_properties, update_layer_geometry, get_style,
     apply_style_to_entity, set_drawing_properties,
     initialize_document, sanitize_layer_name, add_mtext,
-    atomic_save_dxf, cleanup_document, SCRIPT_IDENTIFIER,
+    atomic_save_dxf, SCRIPT_IDENTIFIER,
     XDATA_APP_ID, XDATA_ENTITY_NAME_KEY, remove_entities_by_layer_optimized,
     create_hatch, verify_dxf_settings
 )
@@ -44,7 +44,6 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blocks', [])
         self.style_manager = StyleManager(project_loader)
-        self.dxf_processor = None  # Deprecated: dxf_processor removed
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -149,7 +148,7 @@ class DXFExporter:
             layer_style = self.style_manager.process_layer_style(layer_name, layer)
             self.add_layer_properties(layer_name, layer, layer_style)
 
-    def export_to_dxf(self, skip_dxf_processor=False):
+    def export_to_dxf(self):
         """Main export method."""
         with profile_operation("Complete DXF Export"):
             try:
@@ -158,7 +157,7 @@ class DXFExporter:
 
                 # Load DXF once
                 with profile_operation("Load/Create DXF Document"):
-                    doc = self._load_or_create_dxf(skip_dxf_processor=True)  # Load without processing
+                    doc = self._load_or_create_dxf()
 
                 # Proceed with geometry layers and other processing
                 with profile_operation("Document Initialization"):
@@ -216,12 +215,11 @@ class DXFExporter:
                 log_error(f"Error during DXF export: {str(e)}")
                 raise
 
-    def _prepare_dxf_document(self, skip_dxf_processor=False):
-        # Backup is now handled by atomic_save_dxf() during the save operation
-        doc = self._load_or_create_dxf(skip_dxf_processor)
+    def _prepare_dxf_document(self):
+        doc = self._load_or_create_dxf()
         return doc
 
-    def _load_or_create_dxf(self, skip_dxf_processor=False):
+    def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         template_filename = self.project_settings.get('templateDxfFilename')
 

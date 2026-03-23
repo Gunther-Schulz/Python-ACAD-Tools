@@ -39,11 +39,9 @@ from src.operations import (
     create_remove_duplicate_lines_layer,
     create_dissolve_by_majority_intersection_layer
 )
-from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 from src.operations.report_operation import create_report_layer
 from src.shapefile_utils import write_shapefile
-from src.operations.label_association_operation import create_label_association_layer
 from src.operations.lagefaktor_operation import create_lagefaktor_layer
 from src.operations.simple_label_operation import create_simple_label_layer
 from src.operations.point_label_operation import create_point_label_layer
