@@ -103,75 +103,28 @@ def print_layer_operations():
 
 def print_layer_settings():
     settings = {
-        "name": {
-            "description": "Name of the layer",
-            "type": "string"
-        },
-        "sync": {
-            "description": "Sync mode: 'push' (write to DXF), 'pull' (read from DXF), 'auto' (bidirectional), 'skip' (no sync)",
-            "type": "string"
-        },
-        "shapeFile": {
-            "description": "Path to the shapefile for this layer",
-            "type": "string"
-        },
-        "outputShapeFile": {
-            "description": "Path to save the output shapefile",
-            "type": "string"
-        },
-        "style": {
-            "description": "Style settings for the layer",
-            "options": {
-                "color": "Color of the layer (name or ACI code)",
-                "linetype": "Line type for the layer",
-                "lineweight": "Line weight for the layer",
-                "plot": "Whether to plot this layer",
-                "locked": "Whether the layer is locked",
-                "frozen": "Whether the layer is frozen",
-                "is_on": "Whether the layer is visible",
-                "transparency": "Transparency of the layer (0.0 to 1.0)"
-            }
-        },
-        "labelStyle": {
-            "description": "Style settings for labels",
-            "options": {
-                "color": "Color of the labels (name or ACI code)",
-                "size": "Size of the label text",
-                "font": "Font for the label text"
-            }
-        },
-        "label": {
-            "description": "Column to use for labels",
-            "type": "string"
-        },
-        "close": {
-            "description": "Whether to close polygons",
-            "type": "boolean"
-        },
-        "linetypeScale": {
-            "description": "Scale factor for line types",
-            "type": "float"
-        },
-        "linetypeGeneration": {
-            "description": "Whether to generate line types",
-            "type": "boolean"
-        },
-        "operations": {
-            "description": "List of operations to perform on the layer",
-            "type": "list of operation objects"
-        }
+        "name": "Name of the layer (required)",
+        "enabled": "Set to false to disable layer without deleting (default: true)",
+        "sync": "Sync mode: push, pull, auto, skip (default: skip)",
+        "shapeFile": "Path to input shapefile",
+        "dxfSource": "Load geometry from external DXF (file, layer, entityTypes, preprocessors)",
+        "outputShapeFile": "Path to save output shapefile",
+        "style": "Style preset name or inline style dict (layer, hatch, text, entity sections)",
+        "hatch": "List of hatch styles to auto-generate Schraffur layers",
+        "label": "Column name to use for labels",
+        "close": "Whether to close polylines (default: true for polygons)",
+        "linetypeScale": "Scale factor for line types",
+        "linetypeGeneration": "Enable linetype generation on polylines",
+        "operations": "List of operations to perform on the layer",
+        "viewports": "Viewport-specific style overrides",
+        "attributes": "Custom attributes to attach to features",
+        "bluntAngles": "Blunt sharp angles (angleThreshold, distance)",
+        "applyHatch": "Apply hatch pattern from another layer's geometry",
     }
 
     log_info("Available Layer Settings:")
-    for setting, details in settings.items():
-        log_info(f"\n{setting.upper()}:")
-        log_info(f"  Description: {details['description']}")
-        if 'type' in details:
-            log_info(f"  Type: {details['type']}")
-        if 'options' in details:
-            log_info("  Options:")
-            for option, description in details['options'].items():
-                log_info(f"    - {option}: {description}")
+    for setting, description in sorted(settings.items()):
+        log_info(f"  {setting}: {description}")
 
 def list_available_projects():
     projects_dir = 'projects'
