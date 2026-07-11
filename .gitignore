@@ -64,3 +64,4 @@ docs/
 
 # Virtual environment
 venv/
+.venv/

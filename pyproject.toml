@@ -1,0 +1,37 @@
+[project]
+name = "python-acad-tools"
+version = "0.1.0"
+description = "Process and export geospatial project data to DXF (AutoCAD) via ezdxf."
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Derived from environment.yaml (conda env `pycad`, Python 3.12). Lower
+# bounds are the versions actually installed in that env, so the uv
+# resolution cannot regress below the known-good set. See README → Install.
+dependencies = [
+    "geopandas>=1.1.1",
+    "shapely>=2.1.1",
+    "fiona>=1.10.1",
+    "rasterio>=1.4.3",
+    "scipy>=1.16.0",
+    "numpy>=2.2.6",
+    "pandas>=2.3.1",
+    "matplotlib>=3.10.5",
+    "requests>=2.32.4",
+    "pyyaml>=6.0.2",
+    "ezdxf>=1.4.2",
+    "pillow>=11.3.0",
+    "scikit-image>=0.25.2",
+    "pyproj>=3.7.1",
+    "owslib>=0.34.1",
+    "openpyxl>=3.1.5",
+    "pyshp>=2.3.1",
+    # WMTS tile OCR (src/wmts_downloader.py). Pulls the torch/torchvision
+    # stack (CUDA wheels), mirroring the conda env.
+    "easyocr>=1.7.2",
+]
+
+[tool.uv]
+# This repo is an application run via `python main.py` / `python dxf2shp.py`
+# with `import src.*` from the repo root, not an installable package.
+package = false

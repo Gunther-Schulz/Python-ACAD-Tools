@@ -2,6 +2,37 @@
 
 This document outlines the various operation types available in the LayerProcessor class and their possible options.
 
+## Setup
+
+This project uses [uv](https://docs.astral.sh/uv/) for environment and
+dependency management. From the repo root:
+
+```bash
+uv sync            # creates .venv and installs from uv.lock
+```
+
+Then run the tools inside the managed environment:
+
+```bash
+uv run python main.py <project_name>     # process a project to DXF
+uv run python main.py -l                 # list all layer operations
+uv run python dxf2shp.py --help          # DXF → shapefile converter
+```
+
+The pinned interpreter is Python 3.12 (see `.python-version`); uv fetches
+it automatically if missing. The `easyocr` dependency pulls in the
+torch/CUDA stack (used by the WMTS text-removal step in
+`src/wmts_downloader.py`), so the first sync downloads several hundred MB.
+
+### Legacy: conda
+
+The previous conda environment is still described by `environment.yaml`:
+
+```bash
+conda env create -f environment.yaml   # creates env `pycad`
+conda activate pycad
+```
+
 ## Operation Types
 
 1. Copy
