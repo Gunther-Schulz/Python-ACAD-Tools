@@ -22,6 +22,13 @@ templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf
 # Moor, Ontras, Telekom, Edis ...). Ersetzt durch gegen die Zeichnung
 # gepruefte Namen (Stand 26 05.04).
 reducedDxf:
+  # AutoCAD-Map-Objektdaten: haengen als XDATA an den Flurstuecksnummern und
+  # verweisen auf Map-Objektdatensaetze (IRD_OBJ_RECORD), die in der
+  # reduzierten Datei nicht existieren. Fuer den Empfaenger totes Gewicht.
+  # Ohne das Strippen wuerden sie registriert und mitgeliefert - beides oeffnet,
+  # aber ausliefern wollen wir den Ballast nicht.
+  stripXdataAppIds:
+    - AcMap_E615D161-C9D7-11d3-839F-0060B0FB6B57
   layers:
     # --- Planinhalt B-Plan (Festsetzungen) ---
     - Geltungsbereich
