@@ -403,9 +403,73 @@ class ReducedDXFCreator:
             # copied entities reference.
             self._import_required_blocks(reduced_doc, original_doc)
 
+            # Copied entities also carry their XDATA, but the APPID registration
+            # stays behind in the source drawing.
+            self._register_required_appids(reduced_doc)
+
         except Exception as e:
             log_error(f"Error copying from main DXF: {str(e)}")
             raise
+
+    def _iter_all_entities(self, doc):
+        """Every entity that can carry XDATA: modelspace plus block definitions."""
+        yield from doc.modelspace()
+        for block in doc.blocks:
+            yield from block
+
+    def _register_required_appids(self, reduced_doc):
+        """
+        Register every XDATA application id used by a copied entity.
+
+        DXF requires each app id used in XDATA to be declared in the APPID
+        table. Copied entities bring their XDATA along, the registration does
+        not follow -- AutoCAD then refuses to open the file outright. ezdxf's
+        audit does NOT flag this, so the file looks clean and is not.
+
+        Optionally drops XDATA for app ids listed in reducedDxf.stripXdataAppIds
+        (e.g. AutoCAD Map object data, whose records do not exist in the
+        reduced file anyway).
+        """
+        settings = self.project_settings.get('reducedDxf', {})
+        strip = set(settings.get('stripXdataAppIds', []) or [])
+
+        if strip:
+            removed = 0
+            for entity in self._iter_all_entities(reduced_doc):
+                if entity.xdata:
+                    for app_id in list(entity.xdata.data.keys()):
+                        if app_id in strip:
+                            entity.discard_xdata(app_id)
+                            removed += 1
+            if removed:
+                log_info(f"Stripped {removed} XDATA records for app id(s): {', '.join(sorted(strip))}")
+
+        used = set()
+        for entity in self._iter_all_entities(reduced_doc):
+            if entity.xdata:
+                used.update(entity.xdata.data.keys())
+
+        missing = sorted(app_id for app_id in used if app_id not in reduced_doc.appids)
+        for app_id in missing:
+            reduced_doc.appids.new(app_id)
+        if missing:
+            log_info(f"Registered {len(missing)} XDATA app id(s) carried over from the source drawing: "
+                     f"{', '.join(missing)}")
+        return missing
+
+    def _assert_appids_registered(self, reduced_doc):
+        """Refuse to write a file AutoCAD would reject. ezdxf's audit misses this."""
+        unregistered = {}
+        for entity in self._iter_all_entities(reduced_doc):
+            if entity.xdata:
+                for app_id in entity.xdata.data.keys():
+                    if app_id not in reduced_doc.appids:
+                        unregistered[app_id] = unregistered.get(app_id, 0) + 1
+        if unregistered:
+            detail = ', '.join(f"{a} ({n}x)" for a, n in sorted(unregistered.items()))
+            raise RuntimeError(
+                f"Refusing to save reduced DXF: XDATA uses unregistered APPIDs -- "
+                f"AutoCAD would reject this file: {detail}")
 
     def _import_required_blocks(self, reduced_doc, original_doc):
         """Import every BLOCK definition referenced by copied INSERTs, nested ones included."""
@@ -766,6 +830,11 @@ class ReducedDXFCreator:
         try:
             # Ensure path exists
             reduced_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Hard gate: an unregistered XDATA APPID makes AutoCAD reject the
+            # file, and ezdxf's audit stays silent about it. Fail loudly here
+            # rather than hand out a file that cannot be opened.
+            self._assert_appids_registered(reduced_doc)
 
             # Set essential DXF header variables (similar to the normal export)
             if '$ACADVER' not in reduced_doc.header:
