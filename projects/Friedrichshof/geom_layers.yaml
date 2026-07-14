@@ -286,11 +286,22 @@ geomLayers:
           area_m2: 0
           perimeter: 1
 
+  # Berichtet die FESTGESETZTE CEF-Flaeche, nicht die Rohquelle.
+  # Vorher wurde "CEF input" gemessen (109.974 m2) - darin stecken 4.141 m2,
+  # die ausserhalb des Geltungsbereichs bzw. auf dem ausgenommenen Flurstueck
+  # 81 liegen. Die Begruendung nennt korrekt 105.832 m2; wer die Tabelle aus
+  # diesem Report neu aufgebaut haette, haette die CEF-Flaeche um 0,41 ha zu
+  # gross ausgewiesen. Jetzt misst der Report dieselbe Flaeche, die auch
+  # festgesetzt ist: CEF ohne Flurstueck 81, verschnitten mit dem
+  # Geltungsbereich (= 105.833 m2, deckungsgleich mit dem Suedteil im CAD).
   - name: "CEF input Report"
     operations:
       - type: copy
         layers:
-          - CEF input
+          - CEF without 81
+      - type: intersection
+        layers:
+          - Geltungsbereich
       - type: calculate
         calculations:
           - type: area
