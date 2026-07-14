@@ -64,6 +64,9 @@ class ReducedDXFCreator:
                 return
 
             # Copy entities from specified layers (all types or basic geometry based on config)
+            from ezdxf import bbox as _bbox
+            self._geometry_checks = []
+            self._source_bbox_cache = _bbox.Cache()
             self._copy_from_main_dxf(reduced_doc, reduced_msp, reduced_layers)
 
             # Clean up and save the document
@@ -512,6 +515,84 @@ class ReducedDXFCreator:
             log_info(f"Spatial filter dropped {total} entities outside '{ref_layer}' ({detail})")
         return total
 
+    @staticmethod
+    def _entity_extents(entity, cache):
+        """Bounding box of one entity, blocks resolved. None if it has no extent."""
+        from ezdxf import bbox
+        try:
+            result = bbox.extents([entity], cache=cache, fast=False)
+        except Exception:
+            return None
+        if result is None or not result.has_data:
+            return None
+        return (result.extmin.x, result.extmin.y, result.extmax.x, result.extmax.y)
+
+    def _assert_geometry_preserved(self, reduced_doc):
+        """
+        Every copied entity must occupy the same space it occupied in the source.
+
+        DXF is full of document-local NAME references -- block names, appids, text
+        styles, linetypes. entity.copy() copies the name, not the resource, so
+        whether an entity still means the same thing in the target depends on
+        whether the target happens to hold something else under that name.
+
+        Friedrichshof: the template defines *U27 as a 6x5 m hatch symbol, the
+        source as a 341x183 m power line. The copied INSERT resolved against the
+        template and the line vanished -- silently, with a structurally valid,
+        audit-clean file as the result.
+
+        Comparing extents catches that whole class, including failure modes nobody
+        has thought of yet: a wrong text style makes text a different size, a wrong
+        linetype scale changes a dashed border. Anything that shifts or resizes
+        geometry shows up here, whatever its cause.
+
+        Entities the spatial filter removed are skipped -- they are gone on purpose.
+        """
+        from ezdxf import bbox
+
+        checks = getattr(self, '_geometry_checks', None)
+        if not checks:
+            return 0
+
+        tolerance = float(self.project_settings.get('reducedDxf', {})
+                          .get('geometryToleranceMeters', 0.001))
+        cache = bbox.Cache()
+        mismatches = []
+        verified = 0
+        for entity, source_extents in checks:
+            if not entity.is_alive:
+                continue  # dropped by the spatial filter, on purpose
+            target_extents = self._entity_extents(entity, cache)
+            if target_extents is None:
+                mismatches.append((entity, source_extents, None))
+                continue
+            drift = max(abs(t - s) for t, s in zip(target_extents, source_extents))
+            if drift > tolerance:
+                mismatches.append((entity, source_extents, target_extents))
+            else:
+                verified += 1
+
+        if mismatches:
+            lines = []
+            for entity, source_extents, target_extents in mismatches[:10]:
+                name = entity.dxf.name if entity.dxf.hasattr('name') else '-'
+                where = ("no extent in the reduced file" if target_extents is None else
+                         f"now X {target_extents[0]:,.1f}..{target_extents[2]:,.1f} "
+                         f"Y {target_extents[1]:,.1f}..{target_extents[3]:,.1f}")
+                lines.append(
+                    f"  {entity.dxftype()} on '{entity.dxf.layer}' (block '{name}'): "
+                    f"source X {source_extents[0]:,.1f}..{source_extents[2]:,.1f} "
+                    f"Y {source_extents[1]:,.1f}..{source_extents[3]:,.1f} -- {where}")
+            more = f"\n  ... and {len(mismatches) - 10} more" if len(mismatches) > 10 else ""
+            raise RuntimeError(
+                f"Refusing to save reduced DXF: {len(mismatches)} copied entities moved or "
+                f"changed size, so a name reference resolved against the wrong resource "
+                f"(block, style or linetype):\n" + "\n".join(lines) + more)
+
+        log_info(f"Geometry preserved: {verified} copied entities occupy the same space "
+                 f"as in the source (tolerance {tolerance:g} m)")
+        return verified
+
     def _iter_all_entities(self, doc):
         """Every entity that can carry XDATA: modelspace plus block definitions."""
         yield from doc.modelspace()
@@ -645,6 +726,12 @@ class ReducedDXFCreator:
                         new_entity = entity.copy()
                         reduced_msp.add_entity(new_entity)
                         entity_count += 1
+                        # Remember where this entity sat in the source, so the save
+                        # gate can prove it still sits there. Measured on the source
+                        # doc, where every block and style it references exists.
+                        source_extents = self._entity_extents(entity, self._source_bbox_cache)
+                        if source_extents is not None:
+                            self._geometry_checks.append((new_entity, source_extents))
                     except Exception as e:
                         log_warning(f"Failed to copy {dxftype} entity in layer {layer_name}: {str(e)}")
                     continue
@@ -949,6 +1036,7 @@ class ReducedDXFCreator:
             # file, and ezdxf's audit stays silent about it. Fail loudly here
             # rather than hand out a file that cannot be opened.
             self._assert_appids_registered(reduced_doc)
+            self._assert_geometry_preserved(reduced_doc)
 
             # Set essential DXF header variables (similar to the normal export)
             if '$ACADVER' not in reduced_doc.header:
