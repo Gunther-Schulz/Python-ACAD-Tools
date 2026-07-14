@@ -29,6 +29,30 @@ reducedDxf:
   # aber ausliefern wollen wir den Ballast nicht.
   stripXdataAppIds:
     - AcMap_E615D161-C9D7-11d3-839F-0060B0FB6B57
+  # Die Zeichnung stammt aus der Zeit vor Python-ACAD-Tools und traegt
+  # Legenden-Muster auf den Planinhalts-Layern selbst (28 von 31 Baugrenze-
+  # Objekten liegen ~3,5 km oestlich in der Legende). Nur Planinhalt filtern -
+  # Kataster und Gebaeude reichen legitim ueber das Plangebiet hinaus und
+  # bleiben vollstaendig.
+  spatialFilter:
+    referenceLayer: Geltungsbereich
+    bufferMeters: 1000
+    layers:
+      - Baugrenze
+      - Baugrenze 2
+      - Leitung
+      - Leitung Oberirdisch
+      - Leitung Unterirdisch
+      - Grünfläche Schraffur
+      - Grünfläche T-Linie Symbol
+    # Gebaeude reicht als Katastergrundlage legitim ueber das Plangebiet hinaus
+    # (309 echte Gebaeude jenseits von 1 km) - darf also nicht eng gefiltert
+    # werden. Es traegt aber einen Streuner am Nullpunkt: das Planzeichen
+    # "Umgrenzung der Flaechen mit wasserrechtlichen Festsetzungen", das dort
+    # faelschlich auf dem Gebaeude-Layer liegt. Der Nullpunkt ist ~6000 km
+    # entfernt, also faengt ihn ein weiter Puffer, ohne Kataster zu verlieren.
+    layerBuffers:
+      Gebäude: 5000
   layers:
     # --- Planinhalt B-Plan (Festsetzungen) ---
     - Geltungsbereich
@@ -67,7 +91,8 @@ reducedDxf:
     - Leitung
     - Leitung Oberirdisch
     - Leitung Unterirdisch
-    - 0-BLOCKS
+    # 0-BLOCKS bewusst NICHT: 102 von 103 Objekten sind Legende bzw.
+    # Nullpunkt-Muell, der eine Rest ist es nicht wert.
 
 # Hash-based auto sync configuration
 auto_conflict_resolution: prompt
