@@ -2,37 +2,65 @@ exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
 # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/22-16 Friedrichshof Zeichnung.dxf"
-dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/26 03.17 Friedrichshof  Zeichnung-2.dxf"
+# dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/26 03.17 Friedrichshof  Zeichnung-2.dxf"
+# Arbeitskopie von "26 05.04 Friedrichshof  Zeichnung.dxf" (Planungsstand 04.05.2026).
+# Bewusst eine Kopie: der Export schreibt in dxfFilename, der exportierte 05.04-Stand
+# bleibt dadurch als Referenz unberührt.
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/26 07.14 Friedrichshof Maxsolar.dxf"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dump"
 # Optional: Filter DXF dump by geometry types (polygons, lines, points)
 # If not specified, all geometry types will be exported
 dxfDumpGeometryTypes: ["polygons"]
 templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf"
-# reducedDxf:
-#   layers:
-#     - 0-BLOCKS
-#     - Grünfläche
-#     - Baufeld
-#     - Baugrenze
-#     - Blendschutzzaun
-#     - EinAusfahrt
-#     - Grünfläche
-#     - Geltungsbereich
-#     - Moor
-#     - ges gesch Biotope
-#     - Leitung Str-Leitungsabschnitt-NS
-#     - Leitung Was-Leitungsabschnitt-VN
-#     - Leitung Was-Leitungsabschnitt-AN
-#     - Leitung Gas-Leitungsabschnitt-VN
-#     - Leitung Ontras Gas
-#     - Leitung Ontras TK
-#     - Leitung Gas_HD_LEIT
-#     - Leitung Stromkabel-MS_unterirdisch_LEIT
-#     - Leitung Mittelspannung Zuwegung
-#     - Leitung Telekom
-#     - Leitung Edis
-#     - Leitungen Buffer
+# Reduzierte Austausch-Fassung fuer den Vorhabentraeger (Maxsolar).
+# Zweck ist NICHT Geheimhaltung, sondern Brauchbarkeit: ohne den Modul-
+# Belegungsplan (PVcase PV Modules = 55.967 von 63.686 Entities) und ohne
+# Legenden-/Layout-Layer. Muster: Plasten_reduced.
+# Die frueher hier auskommentierte Layerliste stammte aus einem anderen
+# Projekt - 16 von 21 Namen existieren in Friedrichshof nicht (Blendschutzzaun,
+# Moor, Ontras, Telekom, Edis ...). Ersetzt durch gegen die Zeichnung
+# gepruefte Namen (Stand 26 05.04).
+reducedDxf:
+  layers:
+    # --- Planinhalt B-Plan (Festsetzungen) ---
+    - Geltungsbereich
+    - Geltungsbereich 2
+    - Baufeld
+    - Baugrenze
+    - Baugrenze 2
+    - Ausgleich Grünfläche
+    - Ausgleich Schutzflächeumgrenzung
+    - Grünstreifen
+    - ges. gesch. Biotope 2
+    - ges. gesch. Biotope Puffer Ring
+    - Ablagerungsfläche
+    - Ablagerungsfläche Puffer Ring
+    - CEF input 2
+    - Baumreihe Linie
+    - Wege
+    - Grünfläche T-Linie Symbol
+    # --- Schraffuren der Festsetzungen (25 Entities, Planzeichnungs-Optik) ---
+    - Baufeld Schraffur
+    - Grünfläche Schraffur
+    - Grünfläche T-Linie Symbol Schraffur
+    - Grünstreifen Schraffur
+    - Wege Schraffur
+    - Ablagerungsfläche Schraffur
+    - Ablagerungsfläche Puffer Ring Schraffur
+    - ges. gesch. Biotope Puffer Ring Schraffur
+    # --- Grundlage zum Verorten ---
+    - flurstücke
+    - Flurstücksnummern
+    - flur
+    - Flurnummern
+    - gemarkung
+    - Gemarkungsnummern
+    - Gebäude
+    - Leitung
+    - Leitung Oberirdisch
+    - Leitung Unterirdisch
+    - 0-BLOCKS
 
 # Hash-based auto sync configuration
 auto_conflict_resolution: prompt
