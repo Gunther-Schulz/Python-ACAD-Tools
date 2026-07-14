@@ -398,9 +398,50 @@ class ReducedDXFCreator:
             if empty_layers:
                 log_warning(f"The following layers had no entities: {', '.join(empty_layers)}")
 
+            # Copied INSERTs carry only a block NAME. Without the matching BLOCK
+            # definition AutoCAD rejects the file, so pull in every block the
+            # copied entities reference.
+            self._import_required_blocks(reduced_doc, original_doc)
+
         except Exception as e:
             log_error(f"Error copying from main DXF: {str(e)}")
             raise
+
+    def _import_required_blocks(self, reduced_doc, original_doc):
+        """Import every BLOCK definition referenced by copied INSERTs, nested ones included."""
+        from ezdxf.addons import Importer
+
+        # Collect block names referenced in the reduced modelspace, then walk the
+        # source blocks to catch blocks referenced from inside other blocks.
+        pending = [e.dxf.name for e in reduced_doc.modelspace().query('INSERT')
+                   if e.dxf.hasattr('name')]
+        seen = set()
+        while pending:
+            name = pending.pop()
+            if name in seen:
+                continue
+            seen.add(name)
+            if name in original_doc.blocks:
+                pending.extend(nested.dxf.name
+                               for nested in original_doc.blocks[name].query('INSERT')
+                               if nested.dxf.hasattr('name'))
+
+        missing = sorted(n for n in seen
+                         if n not in reduced_doc.blocks and n in original_doc.blocks)
+        unresolvable = sorted(n for n in seen if n not in original_doc.blocks
+                              and n not in reduced_doc.blocks)
+        if unresolvable:
+            log_warning(f"Block definitions not found in source DXF: {', '.join(unresolvable)}")
+
+        if not missing:
+            log_debug("No additional block definitions required")
+            return 0
+
+        importer = Importer(original_doc, reduced_doc)
+        importer.import_blocks(missing)
+        importer.finalize()
+        log_info(f"Imported {len(missing)} block definitions required by copied entities")
+        return len(missing)
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
         """
