@@ -95,6 +95,19 @@ class ReducedDXFCreator:
                 reduced_doc.dxfversion = dxf_version
 
             # CRITICAL: Initialize the document structure
+            # The template supplies tables, styles and block definitions -- not
+            # geometry. Whatever sits in its modelspace (in Vorlage.dxf: a
+            # 48-entity block palette parked at the origin) is not part of the
+            # reduced file's contract, which is "exactly the configured layers".
+            # Left in, it shipped to the client in every reduced file so far.
+            template_msp = reduced_doc.modelspace()
+            leftovers = len(template_msp)
+            if leftovers:
+                for entity in list(template_msp):
+                    template_msp.delete_entity(entity)
+                log_info(f"Cleared {leftovers} template entities from the reduced modelspace "
+                         f"(block definitions are kept)")
+
             self.loaded_styles = initialize_document(reduced_doc)
             set_drawing_properties(reduced_doc)
 
@@ -403,6 +416,12 @@ class ReducedDXFCreator:
             # copied entities reference.
             self._import_required_blocks(reduced_doc, original_doc)
 
+            # Must run AFTER the block import: an INSERT's extent can only be
+            # measured once its block definition is present. Filtering first
+            # left every not-yet-imported INSERT unjudgeable, and the "keep when
+            # in doubt" fallback silently let strays through.
+            self._apply_spatial_filter(reduced_doc)
+
             # Copied entities also carry their XDATA, but the APPID registration
             # stays behind in the source drawing.
             self._register_required_appids(reduced_doc)
@@ -410,6 +429,88 @@ class ReducedDXFCreator:
         except Exception as e:
             log_error(f"Error copying from main DXF: {str(e)}")
             raise
+
+    def _apply_spatial_filter(self, reduced_doc):
+        """
+        Drop entities that lie outside the plan area.
+
+        Drawings that predate the pipeline carry legend swatches and stray
+        objects on the very layers that hold plan content (in Friedrichshof, 28
+        of 31 Baugrenze entities are legend samples parked ~3.5 km east). They
+        are invisible in an area calculation -- legend swatches are LINEs, not
+        closed areas -- but they do ship in the reduced file.
+
+        Extents are measured with blocks resolved (fast=False). An INSERT's
+        insert point is NOT its location: Leitung Unterirdisch sits at (0,0) and
+        draws inside the plan area. Filtering on insert points deletes real data.
+
+        Configured per layer, because base layers (cadastre, buildings) reach
+        beyond the plan area legitimately and must not be clipped.
+        """
+        spec = self.project_settings.get('reducedDxf', {}).get('spatialFilter')
+        if not spec:
+            return 0
+
+        ref_layer = spec.get('referenceLayer')
+        default_buffer = float(spec.get('bufferMeters', 0))
+        # layerBuffers gives a layer its own distance. Base layers reach far
+        # beyond the plan on purpose (cadastre, buildings), so they need a wide
+        # buffer -- but they still must not carry strays parked at the origin,
+        # which is ~6000 km away in projected coordinates and wrecks ZOOM EXTENTS.
+        layer_buffers = {name: float(dist)
+                         for name, dist in (spec.get('layerBuffers') or {}).items()}
+        target_layers = set(spec.get('layers') or []) | set(layer_buffers)
+        if not ref_layer:
+            log_warning("spatialFilter needs a referenceLayer, skipping")
+            return 0
+
+        from shapely.geometry import Polygon, box as shapely_box
+        from shapely.ops import unary_union
+        from ezdxf import bbox
+
+        msp = reduced_doc.modelspace()
+        rings = []
+        for entity in msp.query(f'LWPOLYLINE[layer=="{ref_layer}"]'):
+            points = [(p[0], p[1]) for p in entity.get_points()]
+            if len(points) >= 3:
+                poly = Polygon(points)
+                if not poly.is_valid:
+                    poly = poly.buffer(0)
+                if poly.area > 0:
+                    rings.append(poly)
+        if not rings:
+            log_warning(f"spatialFilter: reference layer '{ref_layer}' has no area, skipping")
+            return 0
+
+        reference = unary_union(rings)
+        zones = {}  # buffer distance -> geometry, built once per distance
+        cache = bbox.Cache()
+        dropped = {}
+        for entity in list(msp):
+            layer_name = entity.dxf.layer  # read before deleting: delete destroys the entity
+            if target_layers and layer_name not in target_layers:
+                continue
+            distance = layer_buffers.get(layer_name, default_buffer)
+            if distance not in zones:
+                zones[distance] = reference.buffer(distance)
+            try:
+                extents = bbox.extents([entity], cache=cache, fast=False)
+            except Exception:
+                continue
+            if extents is None or not extents.has_data:
+                continue  # nothing to judge -- keep it rather than guess
+            envelope = shapely_box(extents.extmin.x, extents.extmin.y,
+                                   extents.extmax.x, extents.extmax.y)
+            if not zones[distance].intersects(envelope):
+                msp.delete_entity(entity)
+                dropped[layer_name] = dropped.get(layer_name, 0) + 1
+
+        total = sum(dropped.values())
+        if total:
+            detail = ', '.join(f"{layer}: {n} (>{layer_buffers.get(layer, default_buffer):g} m)"
+                               for layer, n in sorted(dropped.items()))
+            log_info(f"Spatial filter dropped {total} entities outside '{ref_layer}' ({detail})")
+        return total
 
     def _iter_all_entities(self, doc):
         """Every entity that can carry XDATA: modelspace plus block definitions."""
@@ -472,40 +573,53 @@ class ReducedDXFCreator:
                 f"AutoCAD would reject this file: {detail}")
 
     def _import_required_blocks(self, reduced_doc, original_doc):
-        """Import every BLOCK definition referenced by copied INSERTs, nested ones included."""
+        """
+        Import every BLOCK definition referenced by the copied INSERTs.
+
+        Anonymous blocks (*U21, *U27, ...) are numbered per document: the same
+        name means something entirely different in another drawing. Friedrichshof
+        showed what happens when they are matched by name -- the template's *U27
+        is a 6x5 m hatch symbol, the source's *U27 is a 341x183 m power line.
+        Reusing the template's definition silently replaced two power lines with
+        tiny unrelated symbols.
+
+        So anonymous blocks are always imported fresh, renamed on collision, and
+        the INSERTs we copied ourselves are repointed at the new name (the
+        Importer only resolves references for INSERTs it created itself).
+        Named blocks that the template already provides are reused on purpose.
+        """
         from ezdxf.addons import Importer
 
-        # Collect block names referenced in the reduced modelspace, then walk the
-        # source blocks to catch blocks referenced from inside other blocks.
-        pending = [e.dxf.name for e in reduced_doc.modelspace().query('INSERT')
-                   if e.dxf.hasattr('name')]
-        seen = set()
-        while pending:
-            name = pending.pop()
-            if name in seen:
-                continue
-            seen.add(name)
-            if name in original_doc.blocks:
-                pending.extend(nested.dxf.name
-                               for nested in original_doc.blocks[name].query('INSERT')
-                               if nested.dxf.hasattr('name'))
-
-        missing = sorted(n for n in seen
-                         if n not in reduced_doc.blocks and n in original_doc.blocks)
-        unresolvable = sorted(n for n in seen if n not in original_doc.blocks
-                              and n not in reduced_doc.blocks)
-        if unresolvable:
-            log_warning(f"Block definitions not found in source DXF: {', '.join(unresolvable)}")
-
-        if not missing:
-            log_debug("No additional block definitions required")
-            return 0
+        msp = reduced_doc.modelspace()
+        needed = sorted({entity.dxf.name for entity in msp.query('INSERT')
+                         if entity.dxf.hasattr('name')})
 
         importer = Importer(original_doc, reduced_doc)
-        importer.import_blocks(missing)
+        renamed = {}
+        imported = 0
+        for name in needed:
+            if name not in original_doc.blocks:
+                log_warning(f"Block definition '{name}' not found in source DXF")
+                continue
+            anonymous = name.startswith('*')
+            if not anonymous and name in reduced_doc.blocks:
+                continue  # named block supplied by the template: reuse deliberately
+            new_name = importer.import_block(name, rename=True)
+            imported += 1
+            if new_name != name:
+                renamed[name] = new_name
         importer.finalize()
-        log_info(f"Imported {len(missing)} block definitions required by copied entities")
-        return len(missing)
+
+        if renamed:
+            for entity in msp.query('INSERT'):
+                if entity.dxf.name in renamed:
+                    entity.dxf.name = renamed[entity.dxf.name]
+            detail = ', '.join(f"{old} -> {new}" for old, new in sorted(renamed.items()))
+            log_info(f"Resolved {len(renamed)} block name collision(s) with the template: {detail}")
+
+        if imported:
+            log_info(f"Imported {imported} block definitions required by copied entities")
+        return imported
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
         """
