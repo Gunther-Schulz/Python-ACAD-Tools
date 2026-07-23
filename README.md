@@ -1,5 +1,11 @@
 # Layer Processor Operations
 
+> **⚠️ STILLGELEGT (2026-07-23, Betreiber-Entscheid FB 8.25).**
+> Dieses Repo wird nicht weiterentwickelt. Nachfolger für den
+> DXF-/CAD-Workflow ist **`pbs-gis` (`src/pbs_gis/cad/`)** — one-way
+> DXF-Export, kein sync push|pull (Begründung dort in `annotate.py`).
+> Neue Arbeit gehört dorthin; dieses Repo bleibt nur als Referenz lesbar.
+
 This document outlines the various operation types available in the LayerProcessor class and their possible options.
 
 ## Setup
